@@ -66,7 +66,10 @@ export default function ReaderApp({
             data = await file.arrayBuffer();
           } catch (err) {
             if (attempt === 2) {
-              console.warn("Couldn't read file into memory; uploading raw.", err);
+              console.warn(
+                "Couldn't read file into memory; uploading raw.",
+                err,
+              );
             } else {
               await new Promise((r) => setTimeout(r, 700));
             }
