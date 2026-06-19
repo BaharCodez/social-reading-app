@@ -1,0 +1,15 @@
+# Build output
+.next/
+out/
+build/
+coverage/
+
+# Dependencies
+node_modules/
+
+# Generated
+next-env.d.ts
+*.tsbuildinfo
+
+# Lockfiles (let the package manager own formatting)
+package-lock.json
