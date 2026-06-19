@@ -4,56 +4,66 @@ import { useCallback, useEffect, useState } from "react";
 import UploadDropzone from "./UploadDropzone";
 import Library from "./Library";
 import Reader from "./Reader";
-import {
-  deleteBook,
-  getAllBookMeta,
-  getBook,
-  parseBookMetadata,
-  saveBook,
-  type LibraryBook,
-  type LibraryBookMeta,
-} from "@/app/lib/library";
+import { deleteBook, fetchBooks, uploadBook } from "@/app/lib/api";
+import { parseBookMetadata } from "@/app/lib/epub";
+import type { BookMeta, CurrentUser } from "@/app/lib/types";
 
-export default function ReaderApp() {
-  const [books, setBooks] = useState<LibraryBookMeta[] | null>(null);
-  const [open, setOpen] = useState<LibraryBook | null>(null);
+export default function ReaderApp({
+  currentUser,
+}: {
+  currentUser: CurrentUser;
+}) {
+  const [books, setBooks] = useState<BookMeta[] | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load the saved library on first paint.
-  useEffect(() => {
-    getAllBookMeta()
-      .then(setBooks)
-      .catch(() => setBooks([]));
+  const refresh = useCallback(async () => {
+    setBooks(await fetchBooks());
   }, []);
 
-  const refresh = useCallback(async () => {
-    setBooks(await getAllBookMeta());
+  // Load the library and honor a ?book=<id> share link on first paint.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const list = await fetchBooks();
+        if (active) setBooks(list);
+      } catch {
+        if (active) setBooks([]);
+      }
+      const shared = new URLSearchParams(window.location.search).get("book");
+      if (shared && active) setOpenId(shared);
+    })();
+    return () => {
+      active = false;
+    };
   }, []);
+
+  // Keep the URL in sync so the current book is always shareable.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (openId) url.searchParams.set("book", openId);
+    else url.searchParams.delete("book");
+    window.history.replaceState(null, "", url);
+  }, [openId]);
 
   const addBook = useCallback(
-    async (data: ArrayBuffer, fileName: string) => {
-      if (!fileName.toLowerCase().endsWith(".epub")) {
+    async (file: File) => {
+      if (!file.name.toLowerCase().endsWith(".epub")) {
         setError("That doesn't look like an EPUB file. Please choose a .epub.");
         return;
       }
       setError(null);
       setBusy(true);
       try {
+        const data = await file.arrayBuffer();
         const meta = await parseBookMetadata(data);
-        const book: LibraryBook = {
-          id: crypto.randomUUID(),
-          title: meta.title,
-          author: meta.author,
-          coverDataUrl: meta.coverDataUrl,
-          data,
-          addedAt: Date.now(),
-        };
-        await saveBook(book);
+        const { id } = await uploadBook(file, meta);
         await refresh();
-        setOpen(book);
+        setOpenId(id);
       } catch (e) {
-        setError("Couldn't read this EPUB. It may be corrupted.");
+        setError("Couldn't add this EPUB. It may be corrupted.");
         console.error(e);
       } finally {
         setBusy(false);
@@ -61,11 +71,6 @@ export default function ReaderApp() {
     },
     [refresh],
   );
-
-  const openBook = useCallback(async (id: string) => {
-    const book = await getBook(id);
-    if (book) setOpen(book);
-  }, []);
 
   const removeBook = useCallback(
     async (id: string) => {
@@ -75,18 +80,10 @@ export default function ReaderApp() {
     [refresh],
   );
 
-  if (open) {
-    return (
-      <Reader
-        bookData={open.data}
-        bookId={open.id}
-        title={open.title}
-        onClose={() => setOpen(null)}
-      />
-    );
+  if (openId) {
+    return <Reader bookId={openId} onClose={() => setOpenId(null)} />;
   }
 
-  // Still loading the library index.
   if (books === null) {
     return (
       <p className="flex flex-1 items-center justify-center text-sm text-zinc-400">
@@ -95,9 +92,15 @@ export default function ReaderApp() {
     );
   }
 
-  // Empty library → the inviting first-run upload screen.
   if (books.length === 0) {
-    return <UploadDropzone busy={busy} error={error} onFile={addBook} />;
+    return (
+      <UploadDropzone
+        busy={busy}
+        error={error}
+        userName={currentUser.name}
+        onFile={addBook}
+      />
+    );
   }
 
   return (
@@ -105,8 +108,9 @@ export default function ReaderApp() {
       books={books}
       busy={busy}
       error={error}
+      userName={currentUser.name}
       onFile={addBook}
-      onOpen={openBook}
+      onOpen={setOpenId}
       onDelete={removeBook}
     />
   );
