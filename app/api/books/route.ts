@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { currentUserId } from "@/app/lib/session";
 
-// List the current user's library (metadata + how many notes each book has).
+// One shared library: every signed-in user sees all books, tagged with who
+// added each one (and how many notes it has).
 export async function GET() {
   const userId = await currentUserId();
   if (!userId) return new NextResponse(null, { status: 401 });
 
   const books = await prisma.book.findMany({
-    where: { ownerId: userId },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -16,6 +16,8 @@ export async function GET() {
       author: true,
       coverDataUrl: true,
       createdAt: true,
+      ownerId: true,
+      owner: { select: { name: true } },
       _count: { select: { annotations: true } },
     },
   });
@@ -28,6 +30,8 @@ export async function GET() {
       coverDataUrl: b.coverDataUrl,
       createdAt: b.createdAt.getTime(),
       noteCount: b._count.annotations,
+      ownerName: b.owner.name ?? "Someone",
+      mine: b.ownerId === userId,
     })),
   );
 }

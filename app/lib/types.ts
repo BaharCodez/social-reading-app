@@ -13,6 +13,10 @@ export interface BookMeta {
   coverDataUrl?: string | null;
   createdAt: number;
   noteCount: number;
+  // Who added the book to the shared library.
+  ownerName: string;
+  // True when the signed-in user added it (so only they can remove it).
+  mine: boolean;
 }
 
 // A margin note as returned by the API — carries who wrote it.

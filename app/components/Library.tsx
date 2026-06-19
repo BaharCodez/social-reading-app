@@ -89,15 +89,20 @@ export default function Library({
                       </span>
                     )}
                   </p>
+                  <p className="truncate text-xs text-zinc-400">
+                    Added by {book.mine ? "you" : book.ownerName}
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onDelete(book.id)}
-                  aria-label={`Remove ${book.title}`}
-                  className="shrink-0 text-xs text-zinc-300 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-500"
-                >
-                  Remove
-                </button>
+                {book.mine && (
+                  <button
+                    type="button"
+                    onClick={() => onDelete(book.id)}
+                    aria-label={`Remove ${book.title}`}
+                    className="shrink-0 text-xs text-zinc-300 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-500"
+                  >
+                    Remove
+                  </button>
+                )}
               </div>
             </div>
           ))}

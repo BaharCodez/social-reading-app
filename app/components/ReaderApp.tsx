@@ -57,13 +57,44 @@ export default function ReaderApp({
       setError(null);
       setBusy(true);
       try {
-        const data = await file.arrayBuffer();
-        const meta = await parseBookMetadata(data);
-        const { id } = await uploadBook(file, meta);
+        // Read the file once into memory; mobile (iCloud) file handles can go
+        // stale between reads, so reuse these bytes for both parsing and upload.
+        // Retry a few times — iOS may still be downloading an iCloud file.
+        let data: ArrayBuffer | null = null;
+        for (let attempt = 0; attempt < 3 && data === null; attempt++) {
+          try {
+            data = await file.arrayBuffer();
+          } catch (err) {
+            if (attempt === 2) {
+              console.warn("Couldn't read file into memory; uploading raw.", err);
+            } else {
+              await new Promise((r) => setTimeout(r, 700));
+            }
+          }
+        }
+
+        // Metadata parsing is best-effort — fall back to the filename, since the
+        // reader reads the real title from the book on open.
+        let meta = {
+          title: file.name.replace(/\.epub$/i, ""),
+          author: "Unknown author",
+        };
+        if (data) {
+          try {
+            meta = await parseBookMetadata(data);
+          } catch (err) {
+            console.warn("Couldn't read EPUB metadata; using filename.", err);
+          }
+        }
+
+        const payload = data
+          ? new Blob([data], { type: "application/epub+zip" })
+          : file;
+        const { id } = await uploadBook(payload, meta);
         await refresh();
         setOpenId(id);
       } catch (e) {
-        setError("Couldn't add this EPUB. It may be corrupted.");
+        setError("Couldn't add this EPUB. Please try again.");
         console.error(e);
       } finally {
         setBusy(false);
