@@ -348,9 +348,11 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
                       {a.mine && (
                         <button
                           onClick={() => removeAnnotation(a)}
-                          className="text-xs text-zinc-300 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-500"
+                          aria-label="Delete note"
+                          title="Delete note"
+                          className="text-base text-zinc-400 transition-colors hover:text-red-500"
                         >
-                          Delete
+                          🗑
                         </button>
                       )}
                     </div>

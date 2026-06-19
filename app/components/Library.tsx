@@ -98,9 +98,10 @@ export default function Library({
                     type="button"
                     onClick={() => onDelete(book.id)}
                     aria-label={`Remove ${book.title}`}
-                    className="shrink-0 text-xs text-zinc-300 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-500"
+                    title={`Remove ${book.title}`}
+                    className="shrink-0 text-base text-zinc-400 transition-colors hover:text-red-500"
                   >
-                    Remove
+                    🗑
                   </button>
                 )}
               </div>

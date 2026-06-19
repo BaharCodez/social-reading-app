@@ -32,7 +32,10 @@ export default function ReaderApp({
       } catch {
         if (active) setBooks([]);
       }
-      const shared = new URLSearchParams(window.location.search).get("book");
+      // Reopen the book from a share link, or the last one you were reading.
+      const shared =
+        new URLSearchParams(window.location.search).get("book") ??
+        localStorage.getItem("lastBook");
       if (shared && active) setOpenId(shared);
     })();
     return () => {
@@ -43,8 +46,13 @@ export default function ReaderApp({
   // Keep the URL in sync so the current book is always shareable.
   useEffect(() => {
     const url = new URL(window.location.href);
-    if (openId) url.searchParams.set("book", openId);
-    else url.searchParams.delete("book");
+    if (openId) {
+      url.searchParams.set("book", openId);
+      localStorage.setItem("lastBook", openId);
+    } else {
+      url.searchParams.delete("book");
+      localStorage.removeItem("lastBook");
+    }
     window.history.replaceState(null, "", url);
   }, [openId]);
 
