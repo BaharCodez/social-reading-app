@@ -7,6 +7,8 @@ import {
   createAnnotation,
   deleteAnnotation,
   fetchAnnotations,
+  fetchProgress,
+  saveProgress,
 } from "@/app/lib/api";
 import type { Annotation } from "@/app/lib/types";
 import ThemePicker from "./ThemePicker";
@@ -89,6 +91,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
 
     let destroyed = false;
     let localBook: Book | null = null;
+    let saveTimer: ReturnType<typeof setTimeout> | null = null;
     const drawn = drawnRef.current;
 
     (async () => {
@@ -153,19 +156,17 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           );
         });
 
-        // Remember the reading position (per book, this device) + show "page
-        // X of Y" as the reader moves.
+        // Remember the reading position per user (synced via the server) and
+        // show "page X of Y" as the reader moves. Debounce the save so page
+        // turns don't hammer the API.
         rendition.on("relocated", (location: { start: { cfi: string } }) => {
-          try {
-            localStorage.setItem(`reading-pos:${bookId}`, location.start.cfi);
-          } catch {
-            /* storage unavailable — ignore */
-          }
+          const cfi = location.start.cfi;
+          if (saveTimer) clearTimeout(saveTimer);
+          saveTimer = setTimeout(() => saveProgress(bookId, cfi), 1200);
+
           const total = book.locations.length();
           if (!total) return;
-          const cur = book.locations.locationFromCfi(
-            location.start.cfi,
-          ) as unknown as number;
+          const cur = book.locations.locationFromCfi(cfi) as unknown as number;
           setProgress({ cur: (cur ?? 0) + 1, total });
         });
 
@@ -182,13 +183,9 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
             .catch(() => {});
         });
 
-        // Resume where this device left off in this book, if anywhere.
-        let savedCfi: string | null = null;
-        try {
-          savedCfi = localStorage.getItem(`reading-pos:${bookId}`);
-        } catch {
-          /* storage unavailable */
-        }
+        // Resume where this user left off (synced across their devices).
+        const savedCfi = await fetchProgress(bookId).catch(() => null);
+        if (destroyed) return;
         await rendition.display(savedCfi ?? undefined);
         if (destroyed) return;
 
@@ -226,6 +223,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
 
     return () => {
       destroyed = true;
+      if (saveTimer) clearTimeout(saveTimer);
       localBook?.destroy();
       renditionRef.current = null;
       bookRef.current = null;

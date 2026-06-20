@@ -65,3 +65,20 @@ export async function deleteAnnotation(id: string): Promise<void> {
   if (!res.ok && res.status !== 204)
     throw new Error("Couldn't delete annotation.");
 }
+
+// --- Reading progress (per user, synced across devices) ------------------
+
+export async function fetchProgress(bookId: string): Promise<string | null> {
+  const res = await fetch(`/api/books/${bookId}/progress`);
+  if (!res.ok) return null;
+  const data = (await res.json()) as { cfi: string | null };
+  return data.cfi;
+}
+
+export async function saveProgress(bookId: string, cfi: string): Promise<void> {
+  await fetch(`/api/books/${bookId}/progress`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cfi }),
+  }).catch(() => {});
+}
