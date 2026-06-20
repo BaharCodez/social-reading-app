@@ -34,7 +34,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#fbbf24",
+  themeColor: "#f4ecd8",
   // Keep the layout sane inside the standalone web-app shell.
   width: "device-width",
   initialScale: 1,
@@ -53,10 +53,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
     >
       <head>
-        {/* Apply the saved (or OS) theme before paint to avoid a flash. */}
+        {/* Apply the saved theme before paint to avoid a flash. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme');var d=t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches;var e=document.documentElement;e.classList.toggle('dark',d);e.style.colorScheme=d?'dark':'light';}catch(e){}})();`,
+            __html: `(function(){try{document.documentElement.dataset.theme=localStorage.getItem('theme')||'meadow';}catch(e){}})();`,
           }}
         />
       </head>

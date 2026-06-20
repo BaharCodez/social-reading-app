@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import ThemeToggle from "./ThemeToggle";
+import ThemePicker from "./ThemePicker";
 
 type Mode = "login" | "signup";
 
@@ -55,7 +55,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   return (
     <div className="relative flex flex-1 flex-col items-center justify-center px-6">
       <div className="absolute top-3 right-4">
-        <ThemeToggle />
+        <ThemePicker />
       </div>
       <div className="border-line bg-surface/70 w-full max-w-sm rounded-2xl border p-8 shadow-sm">
         <h1 className="text-ink text-center font-serif text-3xl font-semibold tracking-tight">

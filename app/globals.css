@@ -1,33 +1,85 @@
 @import "tailwindcss";
 
-/* Drive `dark:` utilities off a `.dark` class so a toggle can override the OS. */
-@custom-variant dark (&:where(.dark, .dark *));
+/* ---- Themes -------------------------------------------------------------
+   Each theme is a palette of CSS variables, selected by `data-theme` on
+   <html>. Cottagecore bookshop vibes: buttermilk, moss, terracotta, wood. */
 
-/* Warm, cozy "reading journal" palette. */
-:root {
-  --bg: #f5efe4;
-  --bg-2: #efe6d6;
-  --surface: #fbf8f2;
-  --ink: #4a3f35;
-  --ink-soft: #8a7a6a;
-  --line: #e3d8c6;
-  --accent: #7e8a5e; /* sage */
-  --accent-ink: #ffffff;
-  --shelf: #c9a87c; /* wooden shelf */
-  --shelf-edge: #a9855c;
+:root,
+[data-theme="meadow"] {
+  color-scheme: light;
+  --bg: #f4ecd8;
+  --bg-2: #e7dabd;
+  --surface: #fcf7ea;
+  --ink: #4a4231;
+  --ink-soft: #8a7c5f;
+  --line: #ddd0b1;
+  --accent: #788a4f; /* moss */
+  --accent-ink: #fbf7ec;
+  --accent-2: #c0856a; /* terracotta */
+  --shelf: #c69e66;
+  --shelf-edge: #9a7342;
 }
 
-.dark {
-  --bg: #1f1a15;
-  --bg-2: #181410;
-  --surface: #2a241d;
-  --ink: #ece3d4;
-  --ink-soft: #b3a691;
-  --line: #3a3128;
-  --accent: #9aa877;
-  --accent-ink: #1f1a15;
-  --shelf: #6b5640;
-  --shelf-edge: #4a3a2a;
+[data-theme="sepia"] {
+  color-scheme: light;
+  --bg: #f1e7cf;
+  --bg-2: #e6d6b3;
+  --surface: #faf3e1;
+  --ink: #5b4a33;
+  --ink-soft: #9b8568;
+  --line: #ddccab;
+  --accent: #a9713f; /* rust */
+  --accent-ink: #faf3e1;
+  --accent-2: #8a7b4f;
+  --shelf: #c79a5c;
+  --shelf-edge: #8f6a3a;
+}
+
+/* Woody forest cabin — warm walnut, amber lamplight, pine. */
+[data-theme="cabin"] {
+  color-scheme: dark;
+  --bg: #211a12;
+  --bg-2: #18110a;
+  --surface: #2e2418;
+  --ink: #efe2cd;
+  --ink-soft: #b39c79;
+  --line: #3e3122;
+  --accent: #cf9b53; /* lamplight amber */
+  --accent-ink: #211a12;
+  --accent-2: #8a9a6b; /* pine */
+  --shelf: #6e4f30;
+  --shelf-edge: #4a3420;
+}
+
+/* Autumnal Western dusk — dusky plum sky, sunset rust, golden hour. */
+[data-theme="twilight"] {
+  color-scheme: dark;
+  --bg: #241d28;
+  --bg-2: #1a141e;
+  --surface: #2f2733;
+  --ink: #efe3d6;
+  --ink-soft: #b6a394;
+  --line: #423747;
+  --accent: #d98a52; /* sunset rust */
+  --accent-ink: #241d28;
+  --accent-2: #b06a86; /* dusk rose */
+  --shelf: #6b4f3f;
+  --shelf-edge: #43302a;
+}
+
+[data-theme="forest"] {
+  color-scheme: dark;
+  --bg: #1a241c;
+  --bg-2: #121a14;
+  --surface: #233027;
+  --ink: #e7ecdd;
+  --ink-soft: #9fb09a;
+  --line: #324438;
+  --accent: #9cc07a; /* leaf */
+  --accent-ink: #14201a;
+  --accent-2: #d8a98a;
+  --shelf: #5a4a36;
+  --shelf-edge: #3a2f22;
 }
 
 @theme inline {
@@ -39,6 +91,7 @@
   --color-line: var(--line);
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
+  --color-accent-2: var(--accent-2);
   --color-shelf: var(--shelf);
   --color-shelf-edge: var(--shelf-edge);
   --font-sans: var(--font-geist-sans);
