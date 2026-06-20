@@ -26,6 +26,7 @@ model User {
   sessions    Session[]
   books       Book[]
   annotations Annotation[]
+  progress    ReadingProgress[]
 }
 
 model Account {
@@ -75,8 +76,9 @@ model Book {
   ownerId      String
   createdAt    DateTime @default(now())
 
-  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner       User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   annotations Annotation[]
+  progress    ReadingProgress[]
 }
 
 model Annotation {
@@ -92,4 +94,18 @@ model Annotation {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([bookId])
+}
+
+// Per-user reading position in a book (synced across that user's devices).
+model ReadingProgress {
+  id        String   @id @default(cuid())
+  userId    String
+  bookId    String
+  cfi       String
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId])
 }
