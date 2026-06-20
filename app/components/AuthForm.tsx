@@ -57,6 +57,12 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       <div className="absolute top-3 right-4">
         <ThemePicker />
       </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/ShelfWornDrawn.jpeg"
+        alt="An illustrated stack of well-loved books"
+        className="ring-line mb-6 w-44 rounded-xl ring-1"
+      />
       <div className="border-line bg-surface/70 w-full max-w-sm rounded-2xl border p-8 shadow-sm">
         <h1 className="text-ink text-center font-serif text-3xl font-semibold tracking-tight">
           {isSignup ? "Create your account" : "Welcome back"}
