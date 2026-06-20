@@ -1,6 +1,7 @@
 "use client";
 
 import { signOut } from "next-auth/react";
+import ThemeToggle from "./ThemeToggle";
 
 export default function SignedInBar({ userName }: { userName: string }) {
   return (
@@ -11,6 +12,7 @@ export default function SignedInBar({ userName }: { userName: string }) {
           {userName}
         </span>
       </span>
+      <ThemeToggle />
       <button
         onClick={() => signOut({ callbackUrl: "/login" })}
         className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"

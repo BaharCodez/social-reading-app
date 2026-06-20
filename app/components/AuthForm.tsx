@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
+import ThemeToggle from "./ThemeToggle";
 
 type Mode = "login" | "signup";
 
@@ -52,7 +53,10 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-6">
+    <div className="relative flex flex-1 flex-col items-center justify-center px-6">
+      <div className="absolute top-3 right-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm">
         <h1 className="text-center text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
           {isSignup ? "Create your account" : "Welcome back"}
