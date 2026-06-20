@@ -57,26 +57,26 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       <div className="absolute top-3 right-4">
         <ThemeToggle />
       </div>
-      <div className="w-full max-w-sm">
-        <h1 className="text-center text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <div className="border-line bg-surface/70 w-full max-w-sm rounded-2xl border p-8 shadow-sm">
+        <h1 className="text-ink text-center font-serif text-3xl font-semibold tracking-tight">
           {isSignup ? "Create your account" : "Welcome back"}
         </h1>
-        <p className="mt-2 text-center text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="text-ink-soft mt-2 text-center text-sm">
           Read together — share highlights and notes with friends.
         </p>
 
         <button
           type="button"
           onClick={() => signIn("google", { callbackUrl: "/" })}
-          className="mt-8 flex w-full items-center justify-center gap-2 rounded-md border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          className="border-line text-ink hover:bg-bg mt-8 flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium"
         >
           Continue with Google
         </button>
 
-        <div className="my-6 flex items-center gap-3 text-xs text-zinc-400">
-          <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+        <div className="text-ink-soft my-6 flex items-center gap-3 text-xs">
+          <span className="bg-line h-px flex-1" />
           or
-          <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+          <span className="bg-line h-px flex-1" />
         </div>
 
         <form onSubmit={onSubmit} className="space-y-3">
@@ -88,7 +88,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
               placeholder="Name"
               autoComplete="name"
               required
-              className="w-full rounded-md border border-zinc-300 bg-transparent px-3 py-2 text-sm outline-none focus:border-amber-400 dark:border-zinc-700"
+              className="border-line text-ink focus:border-accent w-full rounded-lg border bg-transparent px-3 py-2 text-sm outline-none"
             />
           )}
           <input
@@ -98,7 +98,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
             placeholder="Email"
             autoComplete="email"
             required
-            className="w-full rounded-md border border-zinc-300 bg-transparent px-3 py-2 text-sm outline-none focus:border-amber-400 dark:border-zinc-700"
+            className="border-line text-ink focus:border-accent w-full rounded-lg border bg-transparent px-3 py-2 text-sm outline-none"
           />
           <input
             type="password"
@@ -107,7 +107,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
             placeholder="Password"
             autoComplete={isSignup ? "new-password" : "current-password"}
             required
-            className="w-full rounded-md border border-zinc-300 bg-transparent px-3 py-2 text-sm outline-none focus:border-amber-400 dark:border-zinc-700"
+            className="border-line text-ink focus:border-accent w-full rounded-lg border bg-transparent px-3 py-2 text-sm outline-none"
           />
 
           {error && (
@@ -117,24 +117,24 @@ export default function AuthForm({ mode }: { mode: Mode }) {
           <button
             type="submit"
             disabled={busy}
-            className="w-full rounded-md bg-amber-400 px-4 py-2.5 text-sm font-medium text-zinc-900 hover:bg-amber-300 disabled:opacity-50"
+            className="bg-accent text-accent-ink w-full rounded-full px-4 py-2.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
           >
             {busy ? "Please wait…" : isSignup ? "Sign up" : "Log in"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="text-ink-soft mt-6 text-center text-sm">
           {isSignup ? (
             <>
               Already have an account?{" "}
-              <Link href="/login" className="text-amber-600 hover:underline">
+              <Link href="/login" className="text-accent hover:underline">
                 Log in
               </Link>
             </>
           ) : (
             <>
               New here?{" "}
-              <Link href="/signup" className="text-amber-600 hover:underline">
+              <Link href="/signup" className="text-accent hover:underline">
                 Create an account
               </Link>
             </>

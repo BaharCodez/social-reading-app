@@ -3,25 +3,62 @@
 /* Drive `dark:` utilities off a `.dark` class so a toggle can override the OS. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Warm, cozy "reading journal" palette. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #f5efe4;
+  --bg-2: #efe6d6;
+  --surface: #fbf8f2;
+  --ink: #4a3f35;
+  --ink-soft: #8a7a6a;
+  --line: #e3d8c6;
+  --accent: #7e8a5e; /* sage */
+  --accent-ink: #ffffff;
+  --shelf: #c9a87c; /* wooden shelf */
+  --shelf-edge: #a9855c;
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --bg: #1f1a15;
+  --bg-2: #181410;
+  --surface: #2a241d;
+  --ink: #ece3d4;
+  --ink-soft: #b3a691;
+  --line: #3a3128;
+  --accent: #9aa877;
+  --accent-ink: #1f1a15;
+  --shelf: #6b5640;
+  --shelf-edge: #4a3a2a;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--bg);
+  --color-bg-2: var(--bg-2);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-shelf: var(--shelf);
+  --color-shelf-edge: var(--shelf-edge);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-fraunces);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, var(--bg-2), transparent 60%),
+    var(--bg);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Smooth momentum scrolling for touch (phone/iPad). */
+.touch-scroll {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.touch-scroll::-webkit-scrollbar {
+  display: none;
 }

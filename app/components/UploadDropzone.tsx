@@ -27,30 +27,30 @@ export default function UploadDropzone({
       <SignedInBar userName={userName} />
       <div className="flex flex-1 flex-col items-center justify-center px-6">
         <div className="w-full max-w-md text-center">
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Open a book
+          <h1 className="text-ink font-serif text-3xl font-semibold tracking-tight">
+            Start your bookshelf
           </h1>
-          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-ink-soft mt-2 text-sm">
             Upload an EPUB to start reading. Share it and read together.
           </p>
 
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className={`mt-8 flex w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-16 transition-colors ${
+            className={`mt-8 flex w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-6 py-16 transition-colors ${
               dragging
-                ? "border-amber-400 bg-amber-50 dark:bg-amber-950/20"
-                : "border-zinc-300 hover:border-zinc-400 dark:border-zinc-700 dark:hover:border-zinc-600"
+                ? "border-accent bg-accent/10"
+                : "border-line hover:border-accent/60"
             }`}
           >
-            <span className="text-base font-medium text-zinc-700 dark:text-zinc-200">
+            <span className="text-ink text-base font-medium">
               {busy
                 ? "Adding book…"
                 : dragging
                   ? "Drop to add"
                   : "Drop an EPUB here"}
             </span>
-            <span className="text-sm text-zinc-400">or click to browse</span>
+            <span className="text-ink-soft text-sm">or click to browse</span>
           </button>
 
           <input
