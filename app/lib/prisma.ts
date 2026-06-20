@@ -1,10 +1,10 @@
 import "server-only";
 import { PrismaClient } from "@/app/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 // Prisma 7 connects through a driver adapter rather than a schema `url`.
-const adapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL ?? "file:./dev.db",
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
 });
 
 // Reuse one client across hot reloads in dev so we don't exhaust connections.
