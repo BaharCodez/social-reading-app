@@ -42,6 +42,7 @@ function addHighlight(rendition: Rendition, cfiRange: string, mine: boolean) {
 export default function Reader({ bookId, onClose }: ReaderProps) {
   const viewerRef = useRef<HTMLDivElement>(null);
   const renditionRef = useRef<Rendition | null>(null);
+  const bookRef = useRef<Book | null>(null);
   // Annotation ids whose highlights are currently drawn, so we only add/remove
   // the delta when the list changes (own saves or friends' notes via polling).
   const drawnRef = useRef<Map<string, string>>(new Map());
@@ -102,6 +103,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
 
         const book = ePub(data);
         localBook = book;
+        bookRef.current = book;
         await book.ready;
         if (destroyed) return;
 
@@ -151,8 +153,14 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           );
         });
 
-        // Update "page X of Y" as the reader moves (needs locations).
+        // Remember the reading position (per book, this device) + show "page
+        // X of Y" as the reader moves.
         rendition.on("relocated", (location: { start: { cfi: string } }) => {
+          try {
+            localStorage.setItem(`reading-pos:${bookId}`, location.start.cfi);
+          } catch {
+            /* storage unavailable — ignore */
+          }
           const total = book.locations.length();
           if (!total) return;
           const cur = book.locations.locationFromCfi(
@@ -174,7 +182,14 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
             .catch(() => {});
         });
 
-        await rendition.display();
+        // Resume where this device left off in this book, if anywhere.
+        let savedCfi: string | null = null;
+        try {
+          savedCfi = localStorage.getItem(`reading-pos:${bookId}`);
+        } catch {
+          /* storage unavailable */
+        }
+        await rendition.display(savedCfi ?? undefined);
         if (destroyed) return;
 
         book.loaded.metadata
@@ -213,6 +228,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
       destroyed = true;
       localBook?.destroy();
       renditionRef.current = null;
+      bookRef.current = null;
       drawn.clear();
     };
   }, [bookId, mode]);
@@ -263,6 +279,12 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
 
   const goPrev = useCallback(() => renditionRef.current?.prev(), []);
   const goNext = useCallback(() => renditionRef.current?.next(), []);
+
+  // Jump to a page (location) via the progress slider.
+  function goToPage(page: number) {
+    const cfi = bookRef.current?.locations.cfiFromLocation(page - 1);
+    if (cfi) renditionRef.current?.display(cfi);
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -484,8 +506,19 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
       </div>
 
       {progress && (
-        <footer className="border-line text-ink-soft border-t px-4 py-2 text-center text-xs">
-          page {progress.cur} of {progress.total}
+        <footer className="border-line flex items-center gap-3 border-t px-4 py-2">
+          <input
+            type="range"
+            min={1}
+            max={progress.total}
+            value={progress.cur}
+            onChange={(e) => goToPage(Number(e.target.value))}
+            aria-label="Jump to page"
+            className="h-1 flex-1 cursor-pointer accent-[var(--accent)]"
+          />
+          <span className="text-ink-soft text-xs whitespace-nowrap">
+            page {progress.cur} of {progress.total}
+          </span>
         </footer>
       )}
     </div>
