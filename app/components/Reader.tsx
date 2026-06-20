@@ -9,7 +9,7 @@ import {
   fetchAnnotations,
 } from "@/app/lib/api";
 import type { Annotation } from "@/app/lib/types";
-import ThemeToggle from "./ThemeToggle";
+import ThemePicker from "./ThemePicker";
 
 interface ReaderProps {
   bookId: string;
@@ -53,6 +53,25 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
   const [pending, setPending] = useState<PendingSelection | null>(null);
   const [draft, setDraft] = useState("");
   const [copied, setCopied] = useState(false);
+  // "paginated" = flip pages; "scrolled" = continuous vertical scroll.
+  const [mode, setMode] = useState<"paginated" | "scrolled">("paginated");
+
+  // Restore the saved reading mode (deferred so it doesn't run synchronously).
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      if (localStorage.getItem("readingMode") === "scrolled")
+        setMode("scrolled");
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  function toggleMode() {
+    setMode((m) => {
+      const next = m === "paginated" ? "scrolled" : "paginated";
+      localStorage.setItem("readingMode", next);
+      return next;
+    });
+  }
 
   // Set up the book + rendition once per book.
   useEffect(() => {
@@ -81,7 +100,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
         const rendition = book.renderTo(container, {
           width: "100%",
           height: "100%",
-          flow: "paginated",
+          flow: mode === "scrolled" ? "scrolled-doc" : "paginated",
           spread: "auto",
         });
         renditionRef.current = rendition;
@@ -153,7 +172,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
       renditionRef.current = null;
       drawn.clear();
     };
-  }, [bookId]);
+  }, [bookId, mode]);
 
   // Load notes once ready, then poll so friends' notes show up live.
   useEffect(() => {
@@ -266,7 +285,18 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           {title}
         </h1>
         <div className="flex items-center gap-2">
-          <ThemeToggle />
+          <button
+            onClick={toggleMode}
+            title={
+              mode === "paginated"
+                ? "Switch to scroll mode"
+                : "Switch to page mode"
+            }
+            className="border-line text-ink-soft hover:bg-surface rounded-full border px-3 py-1 text-sm"
+          >
+            {mode === "paginated" ? "📜 Scroll" : "📖 Pages"}
+          </button>
+          <ThemePicker />
           <button
             onClick={share}
             className="border-line text-ink-soft hover:bg-surface rounded-full border px-3 py-1 text-sm"
