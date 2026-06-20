@@ -91,6 +91,33 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           if (e.key === "ArrowRight") rendition.next();
         });
 
+        // Swipe to turn pages on touch (phone / iPad). Touch events fire inside
+        // the book's iframe, so attach them to each rendered chapter document.
+        rendition.hooks.content.register((contents: { document: Document }) => {
+          const doc = contents.document;
+          let startX: number | null = null;
+          doc.addEventListener(
+            "touchstart",
+            (e: TouchEvent) => {
+              startX = e.changedTouches[0].clientX;
+            },
+            { passive: true },
+          );
+          doc.addEventListener(
+            "touchend",
+            (e: TouchEvent) => {
+              if (startX === null) return;
+              const dx = e.changedTouches[0].clientX - startX;
+              startX = null;
+              if (Math.abs(dx) > 45) {
+                if (dx < 0) rendition.next();
+                else rendition.prev();
+              }
+            },
+            { passive: true },
+          );
+        });
+
         rendition.on("selected", (cfiRange: string) => {
           book
             .getRange(cfiRange)
@@ -227,22 +254,22 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
-      <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+    <div className="bg-bg flex h-screen flex-col">
+      <header className="border-line flex items-center justify-between border-b px-4 py-3">
         <button
           onClick={onClose}
-          className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+          className="text-ink-soft hover:text-ink text-sm"
         >
-          ← Library
+          ← Bookshelf
         </button>
-        <h1 className="truncate px-4 text-sm font-medium text-zinc-700 dark:text-zinc-200">
+        <h1 className="text-ink truncate px-4 font-serif text-base font-medium">
           {title}
         </h1>
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <button
             onClick={share}
-            className="rounded-md border border-zinc-300 px-2.5 py-1 text-sm text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            className="border-line text-ink-soft hover:bg-surface rounded-full border px-3 py-1 text-sm"
           >
             {copied ? "Link copied!" : "Share"}
           </button>
@@ -254,7 +281,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           <button
             onClick={goPrev}
             aria-label="Previous page"
-            className="px-3 text-2xl text-zinc-300 hover:text-zinc-600 dark:hover:text-zinc-300"
+            className="text-ink-soft/50 hover:text-ink px-3 text-2xl"
           >
             ‹
           </button>
@@ -276,16 +303,16 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           <button
             onClick={goNext}
             aria-label="Next page"
-            className="px-3 text-2xl text-zinc-300 hover:text-zinc-600 dark:hover:text-zinc-300"
+            className="text-ink-soft/50 hover:text-ink px-3 text-2xl"
           >
             ›
           </button>
         </div>
 
-        <aside className="flex w-80 shrink-0 flex-col border-l border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+        <aside className="border-line bg-surface flex w-80 shrink-0 flex-col border-l">
           {pending && (
-            <div className="border-b border-zinc-200 p-4 dark:border-zinc-800">
-              <p className="mb-2 border-l-2 border-amber-400 pl-2 text-sm text-zinc-600 italic dark:text-zinc-300">
+            <div className="border-line border-b p-4">
+              <p className="border-accent text-ink-soft mb-2 border-l-2 pl-2 text-sm italic">
                 “{pending.text}”
               </p>
               <textarea
@@ -293,7 +320,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="Add a note in the margin…"
-                className="h-20 w-full resize-none rounded-md border border-zinc-300 bg-transparent p-2 text-sm outline-none focus:border-amber-400 dark:border-zinc-700"
+                className="border-line text-ink focus:border-accent h-20 w-full resize-none rounded-md border bg-transparent p-2 text-sm outline-none"
               />
               <div className="mt-2 flex justify-end gap-2">
                 <button
@@ -301,13 +328,13 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
                     setPending(null);
                     setDraft("");
                   }}
-                  className="rounded-md px-3 py-1.5 text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                  className="text-ink-soft hover:text-ink rounded-md px-3 py-1.5 text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={saveComment}
-                  className="rounded-md bg-amber-400 px-3 py-1.5 text-sm font-medium text-zinc-900 hover:bg-amber-300"
+                  className="bg-accent text-accent-ink rounded-full px-3 py-1.5 text-sm font-medium hover:opacity-90"
                 >
                   Save
                 </button>
@@ -317,7 +344,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
 
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
             {annotations.length === 0 && !pending ? (
-              <p className="text-sm text-zinc-400">
+              <p className="text-ink-soft text-sm">
                 Select any passage to highlight it and add a note. Notes are
                 shared with everyone reading this book.
               </p>
@@ -326,27 +353,25 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
                 {annotations.map((a) => (
                   <li
                     key={a.id}
-                    className="group rounded-md border border-zinc-200 p-3 dark:border-zinc-800"
+                    className="group border-line bg-bg/40 rounded-lg border p-3"
                   >
                     <button
                       onClick={() => jumpTo(a.cfiRange)}
                       className="w-full text-left"
                     >
                       <p
-                        className={`border-l-2 pl-2 text-sm text-zinc-600 dark:text-zinc-300 ${
-                          a.mine ? "border-amber-400" : "border-blue-400"
+                        className={`text-ink-soft border-l-2 pl-2 text-sm ${
+                          a.mine ? "border-accent" : "border-blue-400"
                         }`}
                       >
                         “{a.text}”
                       </p>
                       {a.comment && (
-                        <p className="mt-2 text-sm text-zinc-800 dark:text-zinc-100">
-                          {a.comment}
-                        </p>
+                        <p className="text-ink mt-2 text-sm">{a.comment}</p>
                       )}
                     </button>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="text-xs text-zinc-400">
+                      <span className="text-ink-soft text-xs">
                         {a.mine ? "You" : a.authorName}
                       </span>
                       {a.mine && (
@@ -354,7 +379,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
                           onClick={() => removeAnnotation(a)}
                           aria-label="Delete note"
                           title="Delete note"
-                          className="text-base text-zinc-400 transition-colors hover:text-red-500"
+                          className="text-ink-soft text-base transition-colors hover:text-red-500"
                         >
                           🗑
                         </button>
