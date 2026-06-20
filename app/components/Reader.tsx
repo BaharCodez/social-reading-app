@@ -9,6 +9,7 @@ import {
   fetchAnnotations,
 } from "@/app/lib/api";
 import type { Annotation } from "@/app/lib/types";
+import ThemeToggle from "./ThemeToggle";
 
 interface ReaderProps {
   bookId: string;
@@ -237,12 +238,15 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
         <h1 className="truncate px-4 text-sm font-medium text-zinc-700 dark:text-zinc-200">
           {title}
         </h1>
-        <button
-          onClick={share}
-          className="rounded-md border border-zinc-300 px-2.5 py-1 text-sm text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-        >
-          {copied ? "Link copied!" : "Share"}
-        </button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <button
+            onClick={share}
+            className="rounded-md border border-zinc-300 px-2.5 py-1 text-sm text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            {copied ? "Link copied!" : "Share"}
+          </button>
+        </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
