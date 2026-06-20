@@ -53,6 +53,14 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
   const [pending, setPending] = useState<PendingSelection | null>(null);
   const [draft, setDraft] = useState("");
   const [copied, setCopied] = useState(false);
+  // On mobile the notes panel is a bottom sheet toggled open; on desktop it's
+  // always the side column.
+  const [panelOpen, setPanelOpen] = useState(false);
+  // Reading progress (page X of Y), derived from epub.js locations.
+  const [progress, setProgress] = useState<{
+    cur: number;
+    total: number;
+  } | null>(null);
   // "paginated" = flip pages; "scrolled" = continuous vertical scroll.
   const [mode, setMode] = useState<"paginated" | "scrolled">("paginated");
 
@@ -97,10 +105,12 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
         await book.ready;
         if (destroyed) return;
 
+        const scrolled = mode === "scrolled";
         const rendition = book.renderTo(container, {
           width: "100%",
           height: "100%",
-          flow: mode === "scrolled" ? "scrolled-doc" : "paginated",
+          flow: scrolled ? "scrolled" : "paginated",
+          manager: scrolled ? "continuous" : "default",
           spread: "auto",
         });
         renditionRef.current = rendition;
@@ -128,6 +138,10 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
               if (startX === null) return;
               const dx = e.changedTouches[0].clientX - startX;
               startX = null;
+              // Don't turn the page if the user was selecting text (so
+              // highlighting works on touch) or in scroll mode.
+              const selecting = !!doc.getSelection()?.toString();
+              if (selecting || scrolled) return;
               if (Math.abs(dx) > 45) {
                 if (dx < 0) rendition.next();
                 else rendition.prev();
@@ -137,12 +151,25 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           );
         });
 
+        // Update "page X of Y" as the reader moves (needs locations).
+        rendition.on("relocated", (location: { start: { cfi: string } }) => {
+          const total = book.locations.length();
+          if (!total) return;
+          const cur = book.locations.locationFromCfi(
+            location.start.cfi,
+          ) as unknown as number;
+          setProgress({ cur: (cur ?? 0) + 1, total });
+        });
+
         rendition.on("selected", (cfiRange: string) => {
           book
             .getRange(cfiRange)
             .then((range) => {
               const text = range?.toString().trim() ?? "";
-              if (text) setPending({ cfiRange, text });
+              if (text) {
+                setPending({ cfiRange, text });
+                setPanelOpen(true);
+              }
             })
             .catch(() => {});
         });
@@ -157,7 +184,23 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           .catch(() => {});
 
         setReady(true);
-        book.locations.generate(1000).catch(() => {});
+        book.locations
+          .generate(1000)
+          .then(() => {
+            if (destroyed) return;
+            const loc = rendition.currentLocation() as
+              | { start?: { cfi?: string } }
+              | undefined;
+            const cfi = loc?.start?.cfi;
+            const total = book.locations.length();
+            if (cfi && total) {
+              const cur = book.locations.locationFromCfi(
+                cfi,
+              ) as unknown as number;
+              setProgress({ cur: (cur ?? 0) + 1, total });
+            }
+          })
+          .catch(() => {});
       } catch (e) {
         if (!destroyed) {
           setError("Couldn't open this book.");
@@ -303,6 +346,14 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           >
             {copied ? "Link copied!" : "Share"}
           </button>
+          {/* Mobile-only: open the notes sheet. */}
+          <button
+            onClick={() => setPanelOpen((o) => !o)}
+            aria-label="Notes"
+            className="border-line text-ink-soft hover:bg-surface rounded-full border px-3 py-1 text-sm sm:hidden"
+          >
+            🗒 {annotations.length}
+          </button>
         </div>
       </header>
 
@@ -311,7 +362,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           <button
             onClick={goPrev}
             aria-label="Previous page"
-            className="text-ink-soft/50 hover:text-ink px-3 text-2xl"
+            className="text-ink-soft/50 hover:text-ink hidden px-3 text-2xl sm:block"
           >
             ‹
           </button>
@@ -333,13 +384,22 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           <button
             onClick={goNext}
             aria-label="Next page"
-            className="text-ink-soft/50 hover:text-ink px-3 text-2xl"
+            className="text-ink-soft/50 hover:text-ink hidden px-3 text-2xl sm:block"
           >
             ›
           </button>
         </div>
 
-        <aside className="border-line bg-surface flex w-80 shrink-0 flex-col border-l">
+        <aside
+          className={`${panelOpen ? "flex" : "hidden"} border-line bg-surface fixed inset-x-0 bottom-0 z-20 max-h-[65%] flex-col rounded-t-2xl border-t shadow-2xl sm:static sm:flex sm:max-h-none sm:w-80 sm:shrink-0 sm:rounded-none sm:border-t-0 sm:border-l sm:shadow-none`}
+        >
+          {/* Mobile-only sheet handle / close */}
+          <button
+            onClick={() => setPanelOpen(false)}
+            className="text-ink-soft mx-auto mt-2 mb-1 flex items-center gap-1 rounded-full px-3 py-1 text-xs sm:hidden"
+          >
+            ▾ Close notes
+          </button>
           {pending && (
             <div className="border-line border-b p-4">
               <p className="border-accent text-ink-soft mb-2 border-l-2 pl-2 text-sm italic">
@@ -422,6 +482,12 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           </div>
         </aside>
       </div>
+
+      {progress && (
+        <footer className="border-line text-ink-soft border-t px-4 py-2 text-center text-xs">
+          page {progress.cur} of {progress.total}
+        </footer>
+      )}
     </div>
   );
 }
