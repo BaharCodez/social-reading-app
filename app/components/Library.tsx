@@ -19,14 +19,6 @@ interface LibraryProps {
 // How many books sit on one shelf before starting the next.
 const PER_SHELF = 5;
 
-// Little pixel plants (keyed out of the moodboard) that sit on each shelf.
-const SHELF_SETS = [
-  ["p7", "p4", "p0"],
-  ["p1", "p14", "p10"],
-  ["p8", "p13", "p15"],
-  ["p11", "p9", "p6"],
-];
-
 export default function Library({
   books,
   busy,
@@ -46,27 +38,17 @@ export default function Library({
 
   return (
     <div className="flex flex-1 flex-col" {...dropHandlers}>
-      {/* big plants framing the page edges — Plant Shop theme only (CSS) */}
+      {/* plant-shop scene anchored in the corners — Plant Shop theme only */}
       <div className="plant-decor pointer-events-none fixed inset-0 -z-10">
         <img
-          src="/plants/p1.png"
+          src="/decor/gardener.png"
           alt=""
-          className="absolute bottom-0 left-0 h-40 w-auto sm:h-64"
+          className="absolute bottom-0 left-0 h-44 w-auto sm:h-72"
         />
         <img
-          src="/plants/p9.png"
+          src="/decor/plantshelf.png"
           alt=""
-          className="absolute right-0 bottom-0 h-40 w-auto -scale-x-100 sm:h-64"
-        />
-        <img
-          src="/plants/p5.png"
-          alt=""
-          className="absolute top-1/3 left-0 hidden h-44 w-auto xl:block"
-        />
-        <img
-          src="/plants/p12.png"
-          alt=""
-          className="absolute top-1/2 right-0 hidden h-44 w-auto -scale-x-100 xl:block"
+          className="absolute right-0 bottom-0 h-36 w-auto sm:h-56"
         />
       </div>
 
@@ -79,14 +61,6 @@ export default function Library({
       )}
 
       <div className="mx-auto w-full max-w-5xl flex-1 px-6 pb-16">
-        {/* hanging plants across the top — Plant Shop theme only (CSS) */}
-        <div className="plant-decor h-20 items-start justify-around overflow-visible">
-          <img src="/plants/p3.png" alt="" className="h-28 -translate-y-1" />
-          <img src="/plants/p3.png" alt="" className="h-24 -scale-x-100" />
-          <img src="/plants/p3.png" alt="" className="h-32 -translate-y-2" />
-          <img src="/plants/p3.png" alt="" className="h-24 -scale-x-100" />
-        </div>
-
         <div className="mb-8 flex items-end justify-between">
           <div>
             <h1 className="text-ink font-serif text-4xl font-semibold tracking-tight">
@@ -123,17 +97,6 @@ export default function Library({
                     onDelete={onDelete}
                   />
                 ))}
-                {/* pixel plants — only shown in the Plant Shop theme (CSS) */}
-                <div className="shelf-plant shrink-0 items-end gap-1 select-none">
-                  {SHELF_SETS[shelfIndex % SHELF_SETS.length].map((p, i) => (
-                    <img
-                      key={i}
-                      src={`/plants/${p}.png`}
-                      alt=""
-                      className="h-20 w-auto sm:h-24"
-                    />
-                  ))}
-                </div>
               </div>
               {/* wooden shelf ledge */}
               <div
