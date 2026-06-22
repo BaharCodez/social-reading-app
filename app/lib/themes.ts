@@ -7,6 +7,7 @@ export interface Theme {
 
 export const THEMES: Theme[] = [
   { id: "meadow", label: "Meadow", swatch: "#788a4f" },
+  { id: "plantshop", label: "Plant Shop", swatch: "#6f8f4f" },
   { id: "sepia", label: "Sepia", swatch: "#a9713f" },
   { id: "cabin", label: "Cabin", swatch: "#cf9b53" },
   { id: "twilight", label: "Twilight", swatch: "#d98a52" },

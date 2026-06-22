@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Fraunces } from "next/font/google";
+import { Geist, Geist_Mono, Fraunces, Pixelify_Sans } from "next/font/google";
 import "./globals.css";
 import Providers from "./components/Providers";
 
@@ -16,6 +16,12 @@ const geistMono = Geist_Mono({
 // Cozy serif for headings / the "bookshelf" feel.
 const fraunces = Fraunces({
   variable: "--font-fraunces",
+  subsets: ["latin"],
+});
+
+// Pixel font for the Plant Shop theme's headings.
+const pixelify = Pixelify_Sans({
+  variable: "--font-pixel",
   subsets: ["latin"],
 });
 
@@ -50,7 +56,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} ${pixelify.variable} h-full antialiased`}
     >
       <head>
         {/* Apply the saved theme before paint to avoid a flash. */}
