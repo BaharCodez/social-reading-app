@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import UploadDropzone from "./UploadDropzone";
 import Library from "./Library";
 import Reader from "./Reader";
@@ -17,6 +17,9 @@ export default function ReaderApp({
   const [openId, setOpenId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // True once the initial book-restore has run, so the URL-sync effect doesn't
+  // clear the saved book on the first render.
+  const restored = useRef(false);
 
   const refresh = useCallback(async () => {
     setBooks(await fetchBooks());
@@ -37,14 +40,17 @@ export default function ReaderApp({
         new URLSearchParams(window.location.search).get("book") ??
         localStorage.getItem("lastBook");
       if (shared && active) setOpenId(shared);
+      restored.current = true;
     })();
     return () => {
       active = false;
     };
   }, []);
 
-  // Keep the URL in sync so the current book is always shareable.
+  // Keep the URL in sync so the current book is always shareable. Guarded so
+  // it can't wipe the saved book before the restore above has run.
   useEffect(() => {
+    if (!restored.current) return;
     const url = new URL(window.location.href);
     if (openId) {
       url.searchParams.set("book", openId);
