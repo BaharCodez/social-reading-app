@@ -206,6 +206,29 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
             cfiFromRange: (r: Range, ignore?: string) => string;
           }) => {
             const doc = contents.document;
+
+            // Selection → comment. epub.js's own "selected" relies on mouseup,
+            // which iOS doesn't fire; selectionchange is reliable everywhere.
+            let selTimer: ReturnType<typeof setTimeout> | null = null;
+            doc.addEventListener("selectionchange", () => {
+              if (selTimer) clearTimeout(selTimer);
+              selTimer = setTimeout(() => {
+                const sel = doc.getSelection();
+                const text = sel?.toString().trim() ?? "";
+                if (!text || !sel || sel.rangeCount === 0) return;
+                try {
+                  const cfi = contents.cfiFromRange(sel.getRangeAt(0));
+                  if (cfi) {
+                    setPending({ cfiRange: cfi, text });
+                    setPanelOpen(true);
+                  }
+                } catch {
+                  /* couldn't resolve a CFI — ignore */
+                }
+              }, 350);
+            });
+
+            // Swipe to turn pages (Android; iOS uses the edge tap-zones).
             let startX: number | null = null;
             let startY = 0;
             doc.addEventListener(
@@ -219,24 +242,6 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
             doc.addEventListener(
               "touchend",
               (e: TouchEvent) => {
-                // iOS doesn't fire mouseup, so epub.js's own "selected" event
-                // never triggers — detect the touch selection ourselves and
-                // open the comment composer.
-                const sel = doc.getSelection();
-                const text = sel?.toString().trim() ?? "";
-                if (text && sel && sel.rangeCount > 0) {
-                  try {
-                    const cfi = contents.cfiFromRange(sel.getRangeAt(0));
-                    if (cfi) {
-                      setPending({ cfiRange: cfi, text });
-                      setPanelOpen(true);
-                    }
-                  } catch {
-                    /* couldn't resolve a CFI — ignore */
-                  }
-                  startX = null;
-                  return;
-                }
                 if (startX === null || scrolled) {
                   startX = null;
                   return;
@@ -244,6 +249,8 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
                 const dx = e.changedTouches[0].clientX - startX;
                 const dy = e.changedTouches[0].clientY - startY;
                 startX = null;
+                // Don't turn the page mid-selection.
+                if (doc.getSelection()?.toString()) return;
                 if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.5) {
                   if (dx < 0) rendition.next();
                   else rendition.prev();
