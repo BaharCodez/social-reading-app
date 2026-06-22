@@ -82,6 +82,10 @@ export default function Library({
                     onDelete={onDelete}
                   />
                 ))}
+                {/* a little plant on the shelf, plant-shop style */}
+                <span className="shrink-0 translate-y-1 pb-1 text-3xl select-none">
+                  {["🪴", "🌿", "🌵", "🌱"][shelfIndex % 4]}
+                </span>
               </div>
               {/* wooden shelf ledge */}
               <div
