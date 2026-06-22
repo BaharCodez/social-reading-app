@@ -200,38 +200,59 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
 
         // Light passive swipe to turn pages (works on Android; doesn't fight
         // iOS text selection — on iOS use the edge tap-zones to turn pages).
-        rendition.hooks.content.register((contents: { document: Document }) => {
-          const doc = contents.document;
-          let startX: number | null = null;
-          let startY = 0;
-          doc.addEventListener(
-            "touchstart",
-            (e: TouchEvent) => {
-              startX = e.changedTouches[0].clientX;
-              startY = e.changedTouches[0].clientY;
-            },
-            { passive: true },
-          );
-          doc.addEventListener(
-            "touchend",
-            (e: TouchEvent) => {
-              if (startX === null || scrolled) {
+        rendition.hooks.content.register(
+          (contents: {
+            document: Document;
+            cfiFromRange: (r: Range, ignore?: string) => string;
+          }) => {
+            const doc = contents.document;
+            let startX: number | null = null;
+            let startY = 0;
+            doc.addEventListener(
+              "touchstart",
+              (e: TouchEvent) => {
+                startX = e.changedTouches[0].clientX;
+                startY = e.changedTouches[0].clientY;
+              },
+              { passive: true },
+            );
+            doc.addEventListener(
+              "touchend",
+              (e: TouchEvent) => {
+                // iOS doesn't fire mouseup, so epub.js's own "selected" event
+                // never triggers — detect the touch selection ourselves and
+                // open the comment composer.
+                const sel = doc.getSelection();
+                const text = sel?.toString().trim() ?? "";
+                if (text && sel && sel.rangeCount > 0) {
+                  try {
+                    const cfi = contents.cfiFromRange(sel.getRangeAt(0));
+                    if (cfi) {
+                      setPending({ cfiRange: cfi, text });
+                      setPanelOpen(true);
+                    }
+                  } catch {
+                    /* couldn't resolve a CFI — ignore */
+                  }
+                  startX = null;
+                  return;
+                }
+                if (startX === null || scrolled) {
+                  startX = null;
+                  return;
+                }
+                const dx = e.changedTouches[0].clientX - startX;
+                const dy = e.changedTouches[0].clientY - startY;
                 startX = null;
-                return;
-              }
-              const dx = e.changedTouches[0].clientX - startX;
-              const dy = e.changedTouches[0].clientY - startY;
-              startX = null;
-              // Ignore if the user was selecting text (so highlighting works).
-              if (doc.getSelection()?.toString()) return;
-              if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-                if (dx < 0) rendition.next();
-                else rendition.prev();
-              }
-            },
-            { passive: true },
-          );
-        });
+                if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+                  if (dx < 0) rendition.next();
+                  else rendition.prev();
+                }
+              },
+              { passive: true },
+            );
+          },
+        );
 
         // Remember the reading position per user (synced via the server) and
         // show "page X of Y" as the reader moves. Debounce the save so page
