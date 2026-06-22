@@ -20,6 +20,28 @@
   --shelf-edge: #9a7342;
 }
 
+/* Pixel-art cozy plant shop — warm parchment, sage, terracotta, wood. */
+[data-theme="plantshop"] {
+  color-scheme: light;
+  --bg: #efe4c8;
+  --bg-2: #e3d3ab;
+  --surface: #f7efd9;
+  --ink: #4a3f2a;
+  --ink-soft: #8a7550;
+  --line: #d8c6a0;
+  --accent: #6f8f4f; /* leaf */
+  --accent-ink: #f7efd9;
+  --accent-2: #b5683f; /* terracotta */
+  --shelf: #a9743f;
+  --shelf-edge: #7c4f29;
+}
+
+/* Pixel headings only in the Plant Shop theme. */
+[data-theme="plantshop"] .font-serif {
+  font-family: var(--font-pixel), monospace;
+  letter-spacing: 0.01em;
+}
+
 [data-theme="sepia"] {
   color-scheme: light;
   --bg: #f1e7cf;

@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import SignedInBar from "./SignedInBar";
 import { useFileDrop } from "@/app/lib/useFileDrop";
+import PixelPlant from "./PixelPlant";
 import type { BookMeta } from "@/app/lib/types";
 
 interface LibraryProps {
@@ -82,10 +83,11 @@ export default function Library({
                     onDelete={onDelete}
                   />
                 ))}
-                {/* a little plant on the shelf, plant-shop style */}
-                <span className="shrink-0 translate-y-1 pb-1 text-3xl select-none">
-                  {["🪴", "🌿", "🌵", "🌱"][shelfIndex % 4]}
-                </span>
+                {/* a little pixel plant on the shelf, plant-shop style */}
+                <PixelPlant
+                  variant={shelfIndex}
+                  className="h-12 w-9 shrink-0 select-none"
+                />
               </div>
               {/* wooden shelf ledge */}
               <div
