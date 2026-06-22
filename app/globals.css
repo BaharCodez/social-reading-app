@@ -43,13 +43,11 @@
 }
 
 /* Plant decorations appear only in the Plant Shop theme. */
-.shelf-plant,
 .plant-decor {
   display: none;
 }
-[data-theme="plantshop"] .shelf-plant,
 [data-theme="plantshop"] .plant-decor {
-  display: flex;
+  display: block;
 }
 
 [data-theme="sepia"] {
