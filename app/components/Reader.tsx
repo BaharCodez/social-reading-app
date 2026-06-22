@@ -493,9 +493,9 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
                 ? "Switch to scroll mode"
                 : "Switch to page mode"
             }
-            className="border-line text-ink-soft hover:bg-surface rounded-full border px-3 py-1 text-sm"
+            className="border-line text-ink-soft hover:bg-surface shrink-0 rounded-full border px-3 py-1 text-sm"
           >
-            {mode === "paginated" ? "📜 Scroll" : "📖 Pages"}
+            {mode === "paginated" ? "📖 Pages" : "📜 Scroll"}
           </button>
           <AmbientMusic />
           <ThemePicker />
@@ -555,18 +555,19 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
         <div className="relative flex min-w-0 flex-1 items-stretch">
           <div className="relative min-w-0 flex-1">
             <div ref={viewerRef} className="h-full w-full" />
-            {/* edge tap zones — reliable page turn on every device */}
+            {/* edge tap zones — reliable page turn on every device. Tap the
+                left/right edge of the page to turn. */}
             <button
               onClick={goPrev}
               aria-label="Previous page"
-              className="text-ink-soft/40 hover:text-ink active:bg-ink/5 absolute top-0 left-0 z-10 flex h-full w-[15%] items-center justify-start pl-1 text-2xl"
+              className="text-ink-soft/60 hover:text-ink active:bg-ink/10 absolute top-0 left-0 z-30 flex h-full w-[18%] items-center justify-start pl-1 text-3xl"
             >
               ‹
             </button>
             <button
               onClick={goNext}
               aria-label="Next page"
-              className="text-ink-soft/40 hover:text-ink active:bg-ink/5 absolute top-0 right-0 z-10 flex h-full w-[15%] items-center justify-end pr-1 text-2xl"
+              className="text-ink-soft/60 hover:text-ink active:bg-ink/10 absolute top-0 right-0 z-30 flex h-full w-[18%] items-center justify-end pr-1 text-3xl"
             >
               ›
             </button>

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 // Cozy lo-fi-ish generative music — a slow chord progression on soft detuned
 // pads, an occasional bell melody, warmth (lowpass) and echo (feedback delay).
-// All synthesised in the browser; no audio files. Plant Shop theme only.
+// All synthesised in the browser; no audio files. Available in every theme.
 
 // I–vi–IV–V in C, voiced low and warm.
 const CHORDS = [
@@ -17,25 +17,12 @@ const CHORDS = [
 const MELODY = [523.25, 587.33, 659.25, 783.99, 880.0];
 
 export default function AmbientMusic() {
-  const [theme, setTheme] = useState("");
   const [playing, setPlaying] = useState(false);
   const ctxRef = useRef<AudioContext | null>(null);
   const stopRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    const el = document.documentElement;
-    const obs = new MutationObserver(() => setTheme(el.dataset.theme ?? ""));
-    obs.observe(el, { attributes: true, attributeFilter: ["data-theme"] });
-    const id = requestAnimationFrame(() => setTheme(el.dataset.theme ?? ""));
-    return () => {
-      obs.disconnect();
-      cancelAnimationFrame(id);
-    };
-  }, []);
-
-  useEffect(() => {
-    const active = playing && theme === "plantshop";
-    if (!active) {
+    if (!playing) {
       stopRef.current?.();
       stopRef.current = null;
       return;
@@ -46,7 +33,6 @@ export default function AmbientMusic() {
     void ctx.resume();
     const now = () => ctx.currentTime;
 
-    // master → warmth lowpass → out
     const master = ctx.createGain();
     master.gain.setValueAtTime(0, now());
     master.gain.linearRampToValueAtTime(0.22, now() + 3);
@@ -56,7 +42,6 @@ export default function AmbientMusic() {
     master.connect(warmth);
     warmth.connect(ctx.destination);
 
-    // echo for space
     const delay = ctx.createDelay();
     delay.delayTime.value = 0.38;
     const feedback = ctx.createGain();
@@ -90,7 +75,7 @@ export default function AmbientMusic() {
     };
 
     const playNote = () => {
-      if (Math.random() < 0.35) return; // rest sometimes
+      if (Math.random() < 0.35) return;
       const f = MELODY[Math.floor(Math.random() * MELODY.length)];
       const o = ctx.createOscillator();
       o.type = "triangle";
@@ -126,16 +111,14 @@ export default function AmbientMusic() {
       stopRef.current?.();
       stopRef.current = null;
     };
-  }, [playing, theme]);
-
-  if (theme !== "plantshop") return null;
+  }, [playing]);
 
   return (
     <button
       onClick={() => setPlaying((p) => !p)}
       aria-label={playing ? "Turn off music" : "Play calming music"}
       title={playing ? "Turn off music" : "Play calming music"}
-      className="border-line text-ink-soft hover:bg-surface rounded-full border px-2.5 py-1 text-sm"
+      className="border-line text-ink-soft hover:bg-surface shrink-0 rounded-full border px-2.5 py-1 text-sm"
     >
       {playing ? "♪ on" : "♪ off"}
     </button>
