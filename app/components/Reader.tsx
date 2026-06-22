@@ -31,6 +31,24 @@ const POLL_MS = 5000;
 const MINE_STYLE = { fill: "#fbbf24", "fill-opacity": "0.35" };
 const OTHERS_STYLE = { fill: "#60a5fa", "fill-opacity": "0.30" };
 
+// Flatten the (possibly nested) EPUB table of contents into a list with depth.
+interface NavItem {
+  label?: string;
+  href: string;
+  subitems?: NavItem[];
+}
+function flattenToc(
+  items: NavItem[],
+  depth = 0,
+  out: { label: string; href: string; depth: number }[] = [],
+) {
+  for (const it of items) {
+    out.push({ label: (it.label ?? "").trim(), href: it.href, depth });
+    if (it.subitems?.length) flattenToc(it.subitems, depth + 1, out);
+  }
+  return out;
+}
+
 function addHighlight(rendition: Rendition, cfiRange: string, mine: boolean) {
   rendition.annotations.add(
     "highlight",
@@ -60,6 +78,11 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
   // On mobile the notes panel is a bottom sheet toggled open; on desktop it's
   // always the side column.
   const [panelOpen, setPanelOpen] = useState(false);
+  // Table of contents (flattened, with depth) + its drawer toggle.
+  const [toc, setToc] = useState<
+    { label: string; href: string; depth: number }[]
+  >([]);
+  const [chaptersOpen, setChaptersOpen] = useState(false);
   // Reading progress (page X of Y), derived from epub.js locations.
   const [progress, setProgress] = useState<{
     cur: number;
@@ -158,37 +181,51 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
 
         // Swipe to turn pages on touch (phone / iPad). Touch events fire inside
         // the book's iframe, so attach them to each rendered chapter document.
+        // Swipe to turn pages on touch (iPhone / iPad / Android). Touch events
+        // fire inside the book's iframe, so attach them to each chapter doc.
         rendition.hooks.content.register((contents: { document: Document }) => {
           const doc = contents.document;
           // Claim horizontal gestures so iOS Safari doesn't treat a sideways
           // swipe as its back-navigation (which kills our swipe handler).
           doc.documentElement.style.touchAction = "pan-y";
           if (doc.body) doc.body.style.touchAction = "pan-y";
+
           let startX: number | null = null;
+          let startY = 0;
+          let curX = 0;
           doc.addEventListener(
             "touchstart",
             (e: TouchEvent) => {
               startX = e.changedTouches[0].clientX;
+              startY = e.changedTouches[0].clientY;
+              curX = startX;
             },
             { passive: true },
           );
           doc.addEventListener(
-            "touchend",
+            "touchmove",
             (e: TouchEvent) => {
-              if (startX === null) return;
-              const dx = e.changedTouches[0].clientX - startX;
-              startX = null;
-              // Don't turn the page if the user was selecting text (so
-              // highlighting works on touch) or in scroll mode.
-              const selecting = !!doc.getSelection()?.toString();
-              if (selecting || scrolled) return;
-              if (Math.abs(dx) > 45) {
-                if (dx < 0) rendition.next();
-                else rendition.prev();
-              }
+              curX = e.changedTouches[0].clientX;
             },
             { passive: true },
           );
+          const finish = (e: TouchEvent) => {
+            if (startX === null || scrolled) {
+              startX = null;
+              return;
+            }
+            const end = e.changedTouches[0];
+            const dx = (end ? end.clientX : curX) - startX;
+            const dy = (end ? end.clientY : startY) - startY;
+            startX = null;
+            // Horizontal-dominant swipe past the threshold turns the page.
+            if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+              if (dx < 0) rendition.next();
+              else rendition.prev();
+            }
+          };
+          doc.addEventListener("touchend", finish, { passive: true });
+          doc.addEventListener("touchcancel", finish, { passive: true });
         });
 
         // Remember the reading position per user (synced via the server) and
@@ -229,6 +266,12 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
         book.loaded.metadata
           .then((meta) => {
             if (!destroyed && meta?.title) setTitle(meta.title);
+          })
+          .catch(() => {});
+
+        book.loaded.navigation
+          .then((nav) => {
+            if (!destroyed) setToc(flattenToc(nav.toc as NavItem[]));
           })
           .catch(() => {});
 
@@ -321,6 +364,11 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
     if (cfi) renditionRef.current?.display(cfi);
   }
 
+  function goToChapter(href: string) {
+    renditionRef.current?.display(href);
+    setChaptersOpen(false);
+  }
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "ArrowLeft") goPrev();
@@ -381,6 +429,16 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
         >
           ←<span className="hidden sm:inline"> Bookshelf</span>
         </button>
+        {toc.length > 0 && (
+          <button
+            onClick={() => setChaptersOpen((o) => !o)}
+            aria-label="Chapters"
+            title="Chapters"
+            className="border-line text-ink-soft hover:bg-surface shrink-0 rounded-full border px-3 py-1 text-sm"
+          >
+            📑<span className="hidden sm:inline"> Chapters</span>
+          </button>
+        )}
         <h1 className="text-ink max-w-[38vw] shrink-0 truncate px-1 font-serif text-base font-medium">
           {title}
         </h1>
@@ -433,18 +491,60 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
         </div>
       </header>
 
+      {/* chapters drawer — left side on desktop, sheet on mobile */}
+      {chaptersOpen && (
+        <button
+          aria-label="Close chapters"
+          onClick={() => setChaptersOpen(false)}
+          className="bg-ink/20 fixed inset-0 z-30 sm:hidden"
+        />
+      )}
       <div className="flex min-h-0 flex-1">
-        <div className="relative flex min-w-0 flex-1 items-stretch">
-          <button
-            onClick={goPrev}
-            aria-label="Previous page"
-            className="text-ink-soft/50 hover:text-ink shrink-0 px-2 text-2xl sm:px-3"
-          >
-            ‹
-          </button>
+        <aside
+          className={`${chaptersOpen ? "flex" : "hidden"} border-line bg-surface fixed inset-y-0 left-0 z-40 w-72 max-w-[80%] flex-col border-r shadow-2xl`}
+        >
+          <div className="border-line flex items-center justify-between border-b px-4 py-3">
+            <span className="font-serif text-sm font-medium">Chapters</span>
+            <button
+              onClick={() => setChaptersOpen(false)}
+              className="text-ink-soft hover:text-ink text-sm"
+            >
+              ✕
+            </button>
+          </div>
+          <ul className="min-h-0 flex-1 overflow-y-auto py-2">
+            {toc.map((c, i) => (
+              <li key={i}>
+                <button
+                  onClick={() => goToChapter(c.href)}
+                  className="hover:bg-bg text-ink-soft hover:text-ink block w-full truncate px-4 py-2 text-left text-sm"
+                  style={{ paddingLeft: `${1 + c.depth * 0.75}rem` }}
+                >
+                  {c.label || "Untitled"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </aside>
 
+        <div className="relative flex min-w-0 flex-1 items-stretch">
           <div className="relative min-w-0 flex-1">
             <div ref={viewerRef} className="h-full w-full" />
+            {/* edge tap zones — reliable page turn on every device */}
+            <button
+              onClick={goPrev}
+              aria-label="Previous page"
+              className="text-ink-soft/40 hover:text-ink active:bg-ink/5 absolute top-0 left-0 z-10 flex h-full w-[15%] items-center justify-start pl-1 text-2xl"
+            >
+              ‹
+            </button>
+            <button
+              onClick={goNext}
+              aria-label="Next page"
+              className="text-ink-soft/40 hover:text-ink active:bg-ink/5 absolute top-0 right-0 z-10 flex h-full w-[15%] items-center justify-end pr-1 text-2xl"
+            >
+              ›
+            </button>
             {!ready && !error && (
               <p className="absolute inset-0 flex items-center justify-center text-sm text-zinc-400">
                 Opening book…
@@ -456,14 +556,6 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
               </p>
             )}
           </div>
-
-          <button
-            onClick={goNext}
-            aria-label="Next page"
-            className="text-ink-soft/50 hover:text-ink shrink-0 px-2 text-2xl sm:px-3"
-          >
-            ›
-          </button>
         </div>
 
         <aside
