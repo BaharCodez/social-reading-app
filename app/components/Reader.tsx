@@ -205,9 +205,21 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           doc.addEventListener(
             "touchmove",
             (e: TouchEvent) => {
-              curX = e.changedTouches[0].clientX;
+              if (startX === null) return;
+              const x = e.changedTouches[0].clientX;
+              const y = e.changedTouches[0].clientY;
+              curX = x;
+              // Claim a clearly-horizontal drag so iOS Safari stops hijacking
+              // it (back-swipe / rubber-banding) and lets our swipe through.
+              if (
+                !scrolled &&
+                Math.abs(x - startX) > 8 &&
+                Math.abs(x - startX) > Math.abs(y - startY)
+              ) {
+                e.preventDefault();
+              }
             },
-            { passive: true },
+            { passive: false },
           );
           const finish = (e: TouchEvent) => {
             if (startX === null || scrolled) {
