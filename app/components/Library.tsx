@@ -1,9 +1,9 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
 import { useRef } from "react";
 import SignedInBar from "./SignedInBar";
 import { useFileDrop } from "@/app/lib/useFileDrop";
-import PixelPlant from "./PixelPlant";
 import type { BookMeta } from "@/app/lib/types";
 
 interface LibraryProps {
@@ -18,6 +18,14 @@ interface LibraryProps {
 
 // How many books sit on one shelf before starting the next.
 const PER_SHELF = 5;
+
+// Little pixel plants (keyed out of the moodboard) that sit on each shelf.
+const SHELF_SETS = [
+  ["p7", "p4", "p0"],
+  ["p1", "p14", "p10"],
+  ["p8", "p13", "p15"],
+  ["p11", "p9", "p6"],
+];
 
 export default function Library({
   books,
@@ -47,6 +55,14 @@ export default function Library({
       )}
 
       <div className="mx-auto w-full max-w-5xl flex-1 px-6 pb-16">
+        {/* hanging plants across the top — Plant Shop theme only (CSS) */}
+        <div className="plant-decor h-14 items-start justify-around overflow-visible">
+          <img src="/plants/p3.png" alt="" className="h-20 -translate-y-1" />
+          <img src="/plants/p3.png" alt="" className="h-16 -scale-x-100" />
+          <img src="/plants/p3.png" alt="" className="h-24 -translate-y-2" />
+          <img src="/plants/p3.png" alt="" className="h-16 -scale-x-100" />
+        </div>
+
         <div className="mb-8 flex items-end justify-between">
           <div>
             <h1 className="text-ink font-serif text-4xl font-semibold tracking-tight">
@@ -85,9 +101,14 @@ export default function Library({
                 ))}
                 {/* pixel plants — only shown in the Plant Shop theme (CSS) */}
                 <div className="shelf-plant shrink-0 items-end gap-1 select-none">
-                  <PixelPlant variant={shelfIndex} className="h-12 w-9" />
-                  <PixelPlant variant={shelfIndex + 2} className="h-10 w-8" />
-                  <PixelPlant variant={shelfIndex + 1} className="h-11 w-8" />
+                  {SHELF_SETS[shelfIndex % SHELF_SETS.length].map((p, i) => (
+                    <img
+                      key={i}
+                      src={`/plants/${p}.png`}
+                      alt=""
+                      className="h-14 w-auto"
+                    />
+                  ))}
                 </div>
               </div>
               {/* wooden shelf ledge */}
@@ -141,7 +162,6 @@ function BookSpine({
             style={{ boxShadow: "0 10px 16px -8px rgba(0,0,0,0.55)" }}
           />
           {book.coverDataUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={book.coverDataUrl}
               alt={book.title}
