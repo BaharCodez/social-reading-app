@@ -143,6 +143,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
     let destroyed = false;
     let localBook: Book | null = null;
     let saveTimer: ReturnType<typeof setTimeout> | null = null;
+    let detachOrientation: (() => void) | null = null;
     const drawn = drawnRef.current;
 
     (async () => {
@@ -173,6 +174,17 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           ...(scrolled ? { offset: 1500, offsetDelta: 750 } : {}),
         });
         renditionRef.current = rendition;
+
+        // One column in portrait, two-page spread in landscape (paginated only).
+        if (!scrolled) {
+          const portrait = window.matchMedia("(orientation: portrait)");
+          const applySpread = () =>
+            rendition.spread(portrait.matches ? "none" : "auto");
+          applySpread();
+          portrait.addEventListener("change", applySpread);
+          detachOrientation = () =>
+            portrait.removeEventListener("change", applySpread);
+        }
 
         rendition.on("keyup", (e: KeyboardEvent) => {
           if (e.key === "ArrowLeft") rendition.prev();
@@ -316,6 +328,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
     return () => {
       destroyed = true;
       if (saveTimer) clearTimeout(saveTimer);
+      detachOrientation?.();
       localBook?.destroy();
       renditionRef.current = null;
       bookRef.current = null;
