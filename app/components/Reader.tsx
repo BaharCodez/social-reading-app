@@ -117,6 +117,9 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           flow: scrolled ? "scrolled" : "paginated",
           manager: scrolled ? "continuous" : "default",
           spread: "auto",
+          // Preload further ahead in scroll mode so chapter boundaries don't
+          // stutter as the next section loads in (default is 500/250).
+          ...(scrolled ? { offset: 1500, offsetDelta: 750 } : {}),
         });
         renditionRef.current = rendition;
 
