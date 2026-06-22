@@ -66,6 +66,10 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
   } | null>(null);
   // "paginated" = flip pages; "scrolled" = continuous vertical scroll.
   const [mode, setMode] = useState<"paginated" | "scrolled">("paginated");
+  // Reader font size as a percentage; held in a ref too so the setup effect
+  // can apply the saved size without re-running on every change.
+  const [fontScale, setFontScale] = useState(100);
+  const fontScaleRef = useRef(100);
 
   // Restore the saved reading mode (deferred so it doesn't run synchronously).
   useEffect(() => {
@@ -80,6 +84,29 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
     setMode((m) => {
       const next = m === "paginated" ? "scrolled" : "paginated";
       localStorage.setItem("readingMode", next);
+      return next;
+    });
+  }
+
+  // Restore the saved font size (deferred so it doesn't run synchronously).
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      const saved = Number(localStorage.getItem("fontScale"));
+      if (saved >= 70 && saved <= 220) setFontScale(saved);
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  // Apply font size live and keep the ref in sync for the setup effect.
+  useEffect(() => {
+    fontScaleRef.current = fontScale;
+    renditionRef.current?.themes.fontSize(`${fontScale}%`);
+  }, [fontScale]);
+
+  function changeFont(delta: number) {
+    setFontScale((s) => {
+      const next = Math.min(220, Math.max(70, s + delta));
+      localStorage.setItem("fontScale", String(next));
       return next;
     });
   }
@@ -191,6 +218,8 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
         if (destroyed) return;
         await rendition.display(savedCfi ?? undefined);
         if (destroyed) return;
+
+        rendition.themes.fontSize(`${fontScaleRef.current}%`);
 
         book.loaded.metadata
           .then((meta) => {
@@ -351,6 +380,24 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           {title}
         </h1>
         <div className="flex items-center gap-2">
+          <div className="border-line text-ink-soft flex items-center rounded-full border">
+            <button
+              onClick={() => changeFont(-10)}
+              aria-label="Smaller text"
+              title="Smaller text"
+              className="hover:text-ink px-2 py-1 text-xs"
+            >
+              A−
+            </button>
+            <button
+              onClick={() => changeFont(10)}
+              aria-label="Larger text"
+              title="Larger text"
+              className="hover:text-ink px-2 py-1 text-base"
+            >
+              A+
+            </button>
+          </div>
           <button
             onClick={toggleMode}
             title={
