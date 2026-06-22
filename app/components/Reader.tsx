@@ -49,12 +49,17 @@ function flattenToc(
   return out;
 }
 
-function addHighlight(rendition: Rendition, cfiRange: string, mine: boolean) {
+function addHighlight(
+  rendition: Rendition,
+  cfiRange: string,
+  mine: boolean,
+  onClick: () => void,
+) {
   rendition.annotations.add(
     "highlight",
     cfiRange,
     {},
-    undefined,
+    onClick,
     "sr-highlight",
     mine ? MINE_STYLE : OTHERS_STYLE,
   );
@@ -74,6 +79,8 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [pending, setPending] = useState<PendingSelection | null>(null);
   const [draft, setDraft] = useState("");
+  // The note shown when you tap a highlight in the book.
+  const [activeNote, setActiveNote] = useState<Annotation | null>(null);
   const [copied, setCopied] = useState(false);
   // On mobile the notes panel is a bottom sheet toggled open; on desktop it's
   // always the side column.
@@ -191,65 +198,39 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           if (e.key === "ArrowRight") rendition.next();
         });
 
-        // Swipe to turn pages on touch (phone / iPad). Touch events fire inside
-        // the book's iframe, so attach them to each rendered chapter document.
-        // Swipe to turn pages on touch (iPhone / iPad / Android). Touch events
-        // fire inside the book's iframe, so attach them to each chapter doc.
+        // Light passive swipe to turn pages (works on Android; doesn't fight
+        // iOS text selection — on iOS use the edge tap-zones to turn pages).
         rendition.hooks.content.register((contents: { document: Document }) => {
           const doc = contents.document;
-          // Claim horizontal gestures so iOS Safari doesn't treat a sideways
-          // swipe as its back-navigation (which kills our swipe handler).
-          doc.documentElement.style.touchAction = "pan-y";
-          if (doc.body) doc.body.style.touchAction = "pan-y";
-
           let startX: number | null = null;
           let startY = 0;
-          let curX = 0;
           doc.addEventListener(
             "touchstart",
             (e: TouchEvent) => {
               startX = e.changedTouches[0].clientX;
               startY = e.changedTouches[0].clientY;
-              curX = startX;
             },
             { passive: true },
           );
           doc.addEventListener(
-            "touchmove",
+            "touchend",
             (e: TouchEvent) => {
-              if (startX === null) return;
-              const x = e.changedTouches[0].clientX;
-              const y = e.changedTouches[0].clientY;
-              curX = x;
-              // Claim a clearly-horizontal drag so iOS Safari stops hijacking
-              // it (back-swipe / rubber-banding) and lets our swipe through.
-              if (
-                !scrolled &&
-                Math.abs(x - startX) > 8 &&
-                Math.abs(x - startX) > Math.abs(y - startY)
-              ) {
-                e.preventDefault();
+              if (startX === null || scrolled) {
+                startX = null;
+                return;
+              }
+              const dx = e.changedTouches[0].clientX - startX;
+              const dy = e.changedTouches[0].clientY - startY;
+              startX = null;
+              // Ignore if the user was selecting text (so highlighting works).
+              if (doc.getSelection()?.toString()) return;
+              if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+                if (dx < 0) rendition.next();
+                else rendition.prev();
               }
             },
-            { passive: false },
+            { passive: true },
           );
-          const finish = (e: TouchEvent) => {
-            if (startX === null || scrolled) {
-              startX = null;
-              return;
-            }
-            const end = e.changedTouches[0];
-            const dx = (end ? end.clientX : curX) - startX;
-            const dy = (end ? end.clientY : startY) - startY;
-            startX = null;
-            // Horizontal-dominant swipe past the threshold turns the page.
-            if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.4) {
-              if (dx < 0) rendition.next();
-              else rendition.prev();
-            }
-          };
-          doc.addEventListener("touchend", finish, { passive: true });
-          doc.addEventListener("touchcancel", finish, { passive: true });
         });
 
         // Remember the reading position per user (synced via the server) and
@@ -371,10 +352,11 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
         drawn.delete(id);
       }
     }
-    // Add highlights for notes we haven't drawn yet.
+    // Add highlights for notes we haven't drawn yet. Tapping a highlight
+    // shows that note's comment.
     for (const a of annotations) {
       if (!drawn.has(a.id)) {
-        addHighlight(rendition, a.cfiRange, a.mine);
+        addHighlight(rendition, a.cfiRange, a.mine, () => setActiveNote(a));
         drawn.set(a.id, a.cfiRange);
       }
     }
@@ -490,12 +472,12 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
             onClick={toggleMode}
             title={
               mode === "paginated"
-                ? "Switch to scroll mode"
+                ? "Switch to scroll mode (beta — may jump at chapters)"
                 : "Switch to page mode"
             }
             className="border-line text-ink-soft hover:bg-surface shrink-0 rounded-full border px-3 py-1 text-sm"
           >
-            {mode === "paginated" ? "📖 Pages" : "📜 Scroll"}
+            {mode === "paginated" ? "📖 Pages" : "📜 Scroll · beta"}
           </button>
           <AmbientMusic />
           <ThemePicker />
@@ -580,6 +562,38 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
               <p className="absolute inset-0 flex items-center justify-center text-sm text-red-600 dark:text-red-400">
                 {error}
               </p>
+            )}
+
+            {/* tap a highlight → show that note's comment */}
+            {activeNote && (
+              <div className="border-line bg-surface absolute inset-x-3 bottom-3 z-40 mx-auto max-w-md rounded-xl border p-3 shadow-xl">
+                <div className="flex items-start justify-between gap-2">
+                  <p
+                    className={`text-ink-soft border-l-2 pl-2 text-sm italic ${
+                      activeNote.mine ? "border-accent" : "border-blue-400"
+                    }`}
+                  >
+                    “{activeNote.text}”
+                  </p>
+                  <button
+                    onClick={() => setActiveNote(null)}
+                    aria-label="Close"
+                    className="text-ink-soft hover:text-ink shrink-0"
+                  >
+                    ✕
+                  </button>
+                </div>
+                {activeNote.comment ? (
+                  <p className="text-ink mt-2 text-sm">{activeNote.comment}</p>
+                ) : (
+                  <p className="text-ink-soft mt-2 text-xs italic">
+                    No note on this highlight.
+                  </p>
+                )}
+                <p className="text-ink-soft mt-2 text-xs">
+                  — {activeNote.mine ? "You" : activeNote.authorName}
+                </p>
+              </div>
             )}
           </div>
         </div>
