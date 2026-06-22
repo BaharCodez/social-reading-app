@@ -83,11 +83,12 @@ export default function Library({
                     onDelete={onDelete}
                   />
                 ))}
-                {/* a little pixel plant on the shelf, plant-shop style */}
-                <PixelPlant
-                  variant={shelfIndex}
-                  className="h-12 w-9 shrink-0 select-none"
-                />
+                {/* pixel plants — only shown in the Plant Shop theme (CSS) */}
+                <div className="shelf-plant shrink-0 items-end gap-1 select-none">
+                  <PixelPlant variant={shelfIndex} className="h-12 w-9" />
+                  <PixelPlant variant={shelfIndex + 2} className="h-10 w-8" />
+                  <PixelPlant variant={shelfIndex + 1} className="h-11 w-8" />
+                </div>
               </div>
               {/* wooden shelf ledge */}
               <div

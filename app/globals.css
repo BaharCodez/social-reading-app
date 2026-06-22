@@ -42,6 +42,14 @@
   letter-spacing: 0.01em;
 }
 
+/* Shelf plants appear only in the Plant Shop theme. */
+.shelf-plant {
+  display: none;
+}
+[data-theme="plantshop"] .shelf-plant {
+  display: flex;
+}
+
 [data-theme="sepia"] {
   color-scheme: light;
   --bg: #f1e7cf;
