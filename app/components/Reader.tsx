@@ -12,6 +12,7 @@ import {
 } from "@/app/lib/api";
 import type { Annotation } from "@/app/lib/types";
 import ThemePicker from "./ThemePicker";
+import AmbientMusic from "./AmbientMusic";
 
 interface ReaderProps {
   bookId: string;
@@ -369,17 +370,17 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
 
   return (
     <div className="bg-bg flex h-screen flex-col">
-      <header className="border-line flex items-center justify-between border-b px-4 py-3">
+      <header className="border-line touch-scroll flex items-center gap-2 overflow-x-auto border-b px-3 py-3">
         <button
           onClick={onClose}
-          className="text-ink-soft hover:text-ink text-sm"
+          className="text-ink-soft hover:text-ink shrink-0 text-sm"
         >
-          ← Bookshelf
+          ←<span className="hidden sm:inline"> Bookshelf</span>
         </button>
-        <h1 className="text-ink truncate px-4 font-serif text-base font-medium">
+        <h1 className="text-ink max-w-[38vw] shrink-0 truncate px-1 font-serif text-base font-medium">
           {title}
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           <div className="border-line text-ink-soft flex items-center rounded-full border">
             <button
               onClick={() => changeFont(-10)}
@@ -409,6 +410,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           >
             {mode === "paginated" ? "📜 Scroll" : "📖 Pages"}
           </button>
+          <AmbientMusic />
           <ThemePicker />
           <button
             onClick={share}
