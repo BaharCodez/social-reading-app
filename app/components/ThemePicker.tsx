@@ -8,10 +8,14 @@ import { THEMES, DEFAULT_THEME } from "@/app/lib/themes";
 export default function ThemePicker() {
   const [current, setCurrent] = useState(DEFAULT_THEME);
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  // The menu is positioned fixed so it isn't clipped by the scrollable bar.
+  const [pos, setPos] = useState<{ top: number; right: number }>({
+    top: 0,
+    right: 0,
+  });
+  const btnRef = useRef<HTMLButtonElement>(null);
   const initialized = useRef(false);
 
-  // Read the theme the pre-paint script applied (deferred to avoid a clash).
   useEffect(() => {
     const id = requestAnimationFrame(() => {
       setCurrent(document.documentElement.dataset.theme ?? DEFAULT_THEME);
@@ -20,31 +24,40 @@ export default function ThemePicker() {
     return () => cancelAnimationFrame(id);
   }, []);
 
-  // Sync the DOM + storage from state. Skipped until we've read the initial
-  // value, so it never overwrites the pre-paint theme on first load.
   useEffect(() => {
     if (!initialized.current) return;
     document.documentElement.dataset.theme = current;
     localStorage.setItem("theme", current);
   }, [current]);
 
-  // Close the menu on outside click.
   useEffect(() => {
     if (!open) return;
-    function onClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node))
-        setOpen(false);
+    function onClick() {
+      setOpen(false);
     }
+    // Close on any outside interaction or scroll.
     window.addEventListener("mousedown", onClick);
-    return () => window.removeEventListener("mousedown", onClick);
+    window.addEventListener("scroll", onClick, true);
+    return () => {
+      window.removeEventListener("mousedown", onClick);
+      window.removeEventListener("scroll", onClick, true);
+    };
   }, [open]);
+
+  function toggleOpen() {
+    const r = btnRef.current?.getBoundingClientRect();
+    if (r) setPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
+    setOpen((o) => !o);
+  }
 
   const active = THEMES.find((t) => t.id === current) ?? THEMES[0];
 
   return (
-    <div ref={ref} className="relative">
+    <>
       <button
-        onClick={() => setOpen((o) => !o)}
+        ref={btnRef}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={toggleOpen}
         aria-label="Change theme"
         title="Change theme"
         className="border-line text-ink-soft hover:bg-surface flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-sm"
@@ -57,7 +70,11 @@ export default function ThemePicker() {
       </button>
 
       {open && (
-        <div className="border-line bg-surface absolute right-0 z-20 mt-1 w-40 overflow-hidden rounded-xl border py-1 shadow-lg">
+        <div
+          className="border-line bg-surface fixed z-50 w-40 overflow-hidden rounded-xl border py-1 shadow-lg"
+          style={{ top: pos.top, right: pos.right }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
           {THEMES.map((t) => (
             <button
               key={t.id}
@@ -79,6 +96,6 @@ export default function ThemePicker() {
           ))}
         </div>
       )}
-    </div>
+    </>
   );
 }
