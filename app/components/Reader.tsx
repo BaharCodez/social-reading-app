@@ -160,6 +160,10 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
         // the book's iframe, so attach them to each rendered chapter document.
         rendition.hooks.content.register((contents: { document: Document }) => {
           const doc = contents.document;
+          // Claim horizontal gestures so iOS Safari doesn't treat a sideways
+          // swipe as its back-navigation (which kills our swipe handler).
+          doc.documentElement.style.touchAction = "pan-y";
+          if (doc.body) doc.body.style.touchAction = "pan-y";
           let startX: number | null = null;
           doc.addEventListener(
             "touchstart",
@@ -418,11 +422,11 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           >
             {copied ? "Link copied!" : "Share"}
           </button>
-          {/* Mobile-only: open the notes sheet. */}
+          {/* Toggle the notes panel (sheet on mobile, side column on desktop). */}
           <button
             onClick={() => setPanelOpen((o) => !o)}
             aria-label="Notes"
-            className="border-line text-ink-soft hover:bg-surface rounded-full border px-3 py-1 text-sm sm:hidden"
+            className="border-line text-ink-soft hover:bg-surface shrink-0 rounded-full border px-3 py-1 text-sm"
           >
             🗒 {annotations.length}
           </button>
@@ -434,7 +438,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           <button
             onClick={goPrev}
             aria-label="Previous page"
-            className="text-ink-soft/50 hover:text-ink hidden px-3 text-2xl sm:block"
+            className="text-ink-soft/50 hover:text-ink shrink-0 px-2 text-2xl sm:px-3"
           >
             ‹
           </button>
@@ -456,14 +460,14 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           <button
             onClick={goNext}
             aria-label="Next page"
-            className="text-ink-soft/50 hover:text-ink hidden px-3 text-2xl sm:block"
+            className="text-ink-soft/50 hover:text-ink shrink-0 px-2 text-2xl sm:px-3"
           >
             ›
           </button>
         </div>
 
         <aside
-          className={`${panelOpen ? "flex" : "hidden"} border-line bg-surface fixed inset-x-0 bottom-0 z-20 max-h-[65%] flex-col rounded-t-2xl border-t shadow-2xl sm:static sm:flex sm:max-h-none sm:w-80 sm:shrink-0 sm:rounded-none sm:border-t-0 sm:border-l sm:shadow-none`}
+          className={`${panelOpen ? "flex" : "hidden"} border-line bg-surface fixed inset-x-0 bottom-0 z-20 max-h-[65%] flex-col rounded-t-2xl border-t shadow-2xl sm:static sm:max-h-none sm:w-80 sm:shrink-0 sm:rounded-none sm:border-t-0 sm:border-l sm:shadow-none`}
         >
           {/* Mobile-only sheet handle / close */}
           <button
