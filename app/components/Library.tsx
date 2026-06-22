@@ -46,6 +46,30 @@ export default function Library({
 
   return (
     <div className="flex flex-1 flex-col" {...dropHandlers}>
+      {/* big plants framing the page edges — Plant Shop theme only (CSS) */}
+      <div className="plant-decor pointer-events-none fixed inset-0 -z-10">
+        <img
+          src="/plants/p1.png"
+          alt=""
+          className="absolute bottom-0 left-0 h-40 w-auto sm:h-64"
+        />
+        <img
+          src="/plants/p9.png"
+          alt=""
+          className="absolute right-0 bottom-0 h-40 w-auto -scale-x-100 sm:h-64"
+        />
+        <img
+          src="/plants/p5.png"
+          alt=""
+          className="absolute top-1/3 left-0 hidden h-44 w-auto xl:block"
+        />
+        <img
+          src="/plants/p12.png"
+          alt=""
+          className="absolute top-1/2 right-0 hidden h-44 w-auto -scale-x-100 xl:block"
+        />
+      </div>
+
       <SignedInBar userName={userName} />
 
       {dragging && (
@@ -56,11 +80,11 @@ export default function Library({
 
       <div className="mx-auto w-full max-w-5xl flex-1 px-6 pb-16">
         {/* hanging plants across the top — Plant Shop theme only (CSS) */}
-        <div className="plant-decor h-14 items-start justify-around overflow-visible">
-          <img src="/plants/p3.png" alt="" className="h-20 -translate-y-1" />
-          <img src="/plants/p3.png" alt="" className="h-16 -scale-x-100" />
-          <img src="/plants/p3.png" alt="" className="h-24 -translate-y-2" />
-          <img src="/plants/p3.png" alt="" className="h-16 -scale-x-100" />
+        <div className="plant-decor h-20 items-start justify-around overflow-visible">
+          <img src="/plants/p3.png" alt="" className="h-28 -translate-y-1" />
+          <img src="/plants/p3.png" alt="" className="h-24 -scale-x-100" />
+          <img src="/plants/p3.png" alt="" className="h-32 -translate-y-2" />
+          <img src="/plants/p3.png" alt="" className="h-24 -scale-x-100" />
         </div>
 
         <div className="mb-8 flex items-end justify-between">
@@ -106,7 +130,7 @@ export default function Library({
                       key={i}
                       src={`/plants/${p}.png`}
                       alt=""
-                      className="h-14 w-auto"
+                      className="h-20 w-auto sm:h-24"
                     />
                   ))}
                 </div>
