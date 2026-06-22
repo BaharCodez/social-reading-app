@@ -2,20 +2,25 @@
 
 import { signOut } from "next-auth/react";
 import ThemePicker from "./ThemePicker";
+import AmbientMusic from "./AmbientMusic";
 
 export default function SignedInBar({ userName }: { userName: string }) {
   return (
-    <div className="text-ink-soft flex items-center justify-end gap-3 px-6 py-3 text-sm">
-      <span>
-        Signed in as <span className="text-ink font-medium">{userName}</span>
+    <div className="touch-scroll text-ink-soft flex items-center gap-3 overflow-x-auto px-4 py-3 text-sm sm:px-6">
+      <span className="shrink-0">
+        <span className="hidden sm:inline">Signed in as </span>
+        <span className="text-ink font-medium">{userName}</span>
       </span>
-      <ThemePicker />
-      <button
-        onClick={() => signOut({ callbackUrl: "/login" })}
-        className="hover:text-ink"
-      >
-        Log out
-      </button>
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        <AmbientMusic />
+        <ThemePicker />
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="hover:text-ink shrink-0"
+        >
+          Log out
+        </button>
+      </div>
     </div>
   );
 }
