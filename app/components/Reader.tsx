@@ -207,6 +207,15 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           }) => {
             const doc = contents.document;
 
+            // Force the book text to be selectable on iOS (selection can be
+            // disabled by default in standalone/PWA mode).
+            for (const el of [doc.documentElement, doc.body]) {
+              if (!el) continue;
+              el.style.setProperty("-webkit-user-select", "text");
+              el.style.setProperty("user-select", "text");
+              el.style.setProperty("-webkit-touch-callout", "default");
+            }
+
             // Selection → comment. epub.js's own "selected" relies on mouseup,
             // which iOS doesn't fire; selectionchange is reliable everywhere.
             let selTimer: ReturnType<typeof setTimeout> | null = null;
