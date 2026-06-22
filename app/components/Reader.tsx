@@ -542,14 +542,14 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
             <button
               onClick={goPrev}
               aria-label="Previous page"
-              className="text-ink-soft/60 hover:text-ink active:bg-ink/10 absolute top-0 left-0 z-30 flex h-full w-[18%] items-center justify-start pl-1 text-3xl"
+              className="text-ink-soft/60 hover:text-ink active:bg-ink/10 absolute top-0 left-0 z-30 flex h-full w-[28%] items-center justify-start pl-1 text-3xl"
             >
               ‹
             </button>
             <button
               onClick={goNext}
               aria-label="Next page"
-              className="text-ink-soft/60 hover:text-ink active:bg-ink/10 absolute top-0 right-0 z-30 flex h-full w-[18%] items-center justify-end pr-1 text-3xl"
+              className="text-ink-soft/60 hover:text-ink active:bg-ink/10 absolute top-0 right-0 z-30 flex h-full w-[28%] items-center justify-end pr-1 text-3xl"
             >
               ›
             </button>
