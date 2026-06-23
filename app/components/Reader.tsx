@@ -173,12 +173,11 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
         const rendition = book.renderTo(container, {
           width: "100%",
           height: "100%",
-          flow: scrolled ? "scrolled" : "paginated",
-          manager: scrolled ? "continuous" : "default",
+          // scrolled-doc = one chapter scrolls on its own (no continuous
+          // prepend/append, so it doesn't jump at chapter seams).
+          flow: scrolled ? "scrolled-doc" : "paginated",
+          manager: "default",
           spread: "auto",
-          // Preload further ahead in scroll mode so chapter boundaries don't
-          // stutter as the next section loads in (default is 500/250).
-          ...(scrolled ? { offset: 1500, offsetDelta: 750 } : {}),
         });
         renditionRef.current = rendition;
 
@@ -237,7 +236,6 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
               }, 350);
             });
 
-            // Swipe to turn pages (Android; iOS uses the edge tap-zones).
             let startX: number | null = null;
             let startY = 0;
             doc.addEventListener(
@@ -251,15 +249,30 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
             doc.addEventListener(
               "touchend",
               (e: TouchEvent) => {
-                if (startX === null || scrolled) {
+                if (startX === null) {
                   startX = null;
                   return;
                 }
                 const dx = e.changedTouches[0].clientX - startX;
                 const dy = e.changedTouches[0].clientY - startY;
                 startX = null;
-                // Don't turn the page mid-selection.
-                if (doc.getSelection()?.toString()) return;
+                if (doc.getSelection()?.toString()) return; // mid-selection
+
+                if (scrolled) {
+                  // Over-scroll past a chapter edge to change chapters: a firm
+                  // upward swipe at the bottom → next, downward at top → prev.
+                  const se = doc.scrollingElement || doc.documentElement;
+                  const atBottom =
+                    se.scrollTop + se.clientHeight >= se.scrollHeight - 4;
+                  const atTop = se.scrollTop <= 4;
+                  if (Math.abs(dy) > 90 && Math.abs(dy) > Math.abs(dx)) {
+                    if (dy < 0 && atBottom) rendition.next();
+                    else if (dy > 0 && atTop) rendition.prev();
+                  }
+                  return;
+                }
+
+                // Paginated: horizontal swipe turns the page.
                 if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.5) {
                   if (dx < 0) rendition.next();
                   else rendition.prev();
@@ -574,22 +587,26 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
         <div className="relative flex min-w-0 flex-1 items-stretch">
           <div className="relative min-w-0 flex-1">
             <div ref={viewerRef} className="h-full w-full" />
-            {/* edge tap zones — reliable page turn on every device. Tap the
-                left/right edge of the page to turn. */}
-            <button
-              onClick={goPrev}
-              aria-label="Previous page"
-              className="text-ink-soft/60 hover:text-ink absolute top-0 left-0 z-30 flex h-full w-[28%] items-center justify-start pl-1 text-3xl select-none [-webkit-touch-callout:none]"
-            >
-              ‹
-            </button>
-            <button
-              onClick={goNext}
-              aria-label="Next page"
-              className="text-ink-soft/60 hover:text-ink absolute top-0 right-0 z-30 flex h-full w-[28%] items-center justify-end pr-1 text-3xl select-none [-webkit-touch-callout:none]"
-            >
-              ›
-            </button>
+            {/* edge tap zones — Pages mode only (scroll mode navigates by
+                scrolling + over-scroll at chapter ends). */}
+            {mode === "paginated" && (
+              <>
+                <button
+                  onClick={goPrev}
+                  aria-label="Previous page"
+                  className="text-ink-soft/60 hover:text-ink absolute top-0 left-0 z-30 flex h-full w-[28%] items-center justify-start pl-1 text-3xl select-none [-webkit-touch-callout:none]"
+                >
+                  ‹
+                </button>
+                <button
+                  onClick={goNext}
+                  aria-label="Next page"
+                  className="text-ink-soft/60 hover:text-ink absolute top-0 right-0 z-30 flex h-full w-[28%] items-center justify-end pr-1 text-3xl select-none [-webkit-touch-callout:none]"
+                >
+                  ›
+                </button>
+              </>
+            )}
             {!ready && !error && (
               <p className="absolute inset-0 flex items-center justify-center text-sm text-zinc-400">
                 Opening book…
