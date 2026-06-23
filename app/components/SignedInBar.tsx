@@ -12,6 +12,9 @@ export default function SignedInBar({ userName }: { userName: string }) {
         <span className="text-ink font-medium">{userName}</span>
       </span>
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        <span className="text-ink-soft/50 hidden text-[10px] sm:inline">
+          build {process.env.NEXT_PUBLIC_BUILD}
+        </span>
         <AmbientMusic />
         <ThemePicker />
         <button
