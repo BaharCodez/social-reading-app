@@ -169,6 +169,38 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
         await book.ready;
         if (destroyed) return;
 
+        // Some EPUBs ship XHTML content under a `.html` extension with
+        // self-closing raw-text tags (e.g. `<script src=".."/>`). That's valid
+        // XHTML, but epub.js parses `.html` sections as text/html, where a
+        // self-closed <script> is treated as *unclosed* and swallows the rest
+        // of the document as script text — so every chapter renders blank
+        // (only the cover, which has no such tag, shows). A Kiss Before Dying
+        // is one such book. Repair the raw markup just before epub.js parses
+        // it by wrapping the archive's response handler: close self-closing
+        // script/style/title/textarea tags (harmless on already-valid books).
+        const archive = (
+          book as unknown as {
+            archive?: {
+              handleResponse: (response: unknown, type?: string) => unknown;
+            };
+          }
+        ).archive;
+        if (archive && typeof archive.handleResponse === "function") {
+          const original = archive.handleResponse.bind(archive);
+          archive.handleResponse = (response: unknown, type?: string) => {
+            if (
+              typeof response === "string" &&
+              (type === "html" || type === "htm" || type === "xhtml")
+            ) {
+              response = response.replace(
+                /<(script|style|title|textarea)(\b[^>]*?)\/>/gi,
+                "<$1$2></$1>",
+              );
+            }
+            return original(response, type);
+          };
+        }
+
         const scrolled = mode === "scrolled";
         const rendition = book.renderTo(container, {
           width: "100%",
