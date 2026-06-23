@@ -312,6 +312,50 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
               },
               { passive: true },
             );
+
+            // Desktop (laptop): there's no touch swipe, so changing chapters
+            // in scroll mode relies on the wheel/trackpad. In scrolled-doc the
+            // chapter scrolls on epub.js's outer .epub-container (the iframe
+            // itself never scrolls), so read the edge from that element — the
+            // wheel event still fires inside the iframe doc. Once at an edge,
+            // accumulate wheel delta in the same direction and cross a
+            // threshold to flip to the next/prev chapter.
+            if (scrolled) {
+              const scroller =
+                (container.querySelector(".epub-container") as HTMLElement) ||
+                container;
+              let overscroll = 0;
+              let lastDir = 0;
+              let navigating = false;
+              doc.addEventListener(
+                "wheel",
+                (e: WheelEvent) => {
+                  if (navigating) return;
+                  const atBottom =
+                    scroller.scrollTop + scroller.clientHeight >=
+                    scroller.scrollHeight - 4;
+                  const atTop = scroller.scrollTop <= 4;
+                  const dir = e.deltaY > 0 ? 1 : -1;
+                  const atEdge = (dir > 0 && atBottom) || (dir < 0 && atTop);
+                  if (!atEdge) {
+                    overscroll = 0;
+                    return;
+                  }
+                  if (dir !== lastDir) {
+                    overscroll = 0;
+                    lastDir = dir;
+                  }
+                  overscroll += Math.abs(e.deltaY);
+                  if (overscroll > 120) {
+                    navigating = true;
+                    overscroll = 0;
+                    if (dir > 0) rendition.next();
+                    else rendition.prev();
+                  }
+                },
+                { passive: true },
+              );
+            }
           },
         );
 
