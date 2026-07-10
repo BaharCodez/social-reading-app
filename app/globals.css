@@ -145,3 +145,11 @@ body {
 .touch-scroll::-webkit-scrollbar {
   display: none;
 }
+
+/* epub.js's scroll container (scroll mode scrolls this element, not the
+   iframe): momentum scrolling on iOS, and keep over-scroll at chapter edges
+   from rubber-banding the whole app shell / triggering pull-to-refresh. */
+.epub-container {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
