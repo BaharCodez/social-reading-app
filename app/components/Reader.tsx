@@ -78,6 +78,10 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
   const [error, setError] = useState<string | null>(null);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [pending, setPending] = useState<PendingSelection | null>(null);
+  // The current text selection, before the reader commits to writing a note.
+  // Shown as a floating "Add note" pill so we never open the composer (and
+  // the keyboard) mid-selection — on iOS that collapses the selection.
+  const [candidate, setCandidate] = useState<PendingSelection | null>(null);
   const [draft, setDraft] = useState("");
   // The note shown when you tap a highlight in the book.
   const [activeNote, setActiveNote] = useState<Annotation | null>(null);
@@ -97,6 +101,10 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
   } | null>(null);
   // "paginated" = flip pages; "scrolled" = continuous vertical scroll.
   const [mode, setMode] = useState<"paginated" | "scrolled">("paginated");
+  // Height of the on-screen keyboard (iOS): the notes bottom sheet is
+  // position:fixed, which iOS keeps behind the keyboard, so we lift it by
+  // this much while typing a note.
+  const [kbInset, setKbInset] = useState(0);
   // Reader font size as a percentage; held in a ref too so the setup effect
   // can apply the saved size without re-running on every change.
   const [fontScale, setFontScale] = useState(100);
@@ -134,6 +142,23 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
     renditionRef.current?.themes.fontSize(`${fontScale}%`);
   }, [fontScale]);
 
+  // Track the on-screen keyboard via the visual viewport. `height * scale`
+  // (not raw height) so pinch-zoom doesn't read as a keyboard.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const inset = window.innerHeight - vv.height * vv.scale - vv.offsetTop;
+      setKbInset(Math.max(0, Math.round(inset)));
+    };
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+
   function changeFont(delta: number) {
     setFontScale((s) => {
       const next = Math.min(220, Math.max(70, s + delta));
@@ -152,6 +177,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
     let saveTimer: ReturnType<typeof setTimeout> | null = null;
     let detachOrientation: (() => void) | null = null;
     const drawn = drawnRef.current;
+    setCandidate(null); // a selection can't survive a rendition rebuild
 
     (async () => {
       try {
@@ -247,34 +273,56 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
               el.style.setProperty("-webkit-touch-callout", "default");
             }
 
-            // Selection → comment. epub.js's own "selected" relies on mouseup,
-            // which iOS doesn't fire; selectionchange is reliable everywhere.
+            // Selection → "Add note" pill. epub.js's own "selected" relies on
+            // mouseup, which iOS doesn't fire; selectionchange is reliable
+            // everywhere. Only track the selection here — opening the composer
+            // (with its autofocused textarea) while the reader is still
+            // dragging the iOS selection handles pops the keyboard and
+            // collapses the selection, so that waits for a tap on the pill.
             let selTimer: ReturnType<typeof setTimeout> | null = null;
             doc.addEventListener("selectionchange", () => {
               if (selTimer) clearTimeout(selTimer);
               selTimer = setTimeout(() => {
                 const sel = doc.getSelection();
                 const text = sel?.toString().trim() ?? "";
-                if (!text || !sel || sel.rangeCount === 0) return;
+                if (!text || !sel || sel.rangeCount === 0) {
+                  setCandidate(null); // selection cleared — hide the pill
+                  return;
+                }
                 try {
                   const cfi = contents.cfiFromRange(sel.getRangeAt(0));
-                  if (cfi) {
-                    setPending({ cfiRange: cfi, text });
-                    setPanelOpen(true);
-                  }
+                  if (cfi) setCandidate({ cfiRange: cfi, text });
                 } catch {
                   /* couldn't resolve a CFI — ignore */
                 }
               }, 350);
             });
 
+            // In scrolled-doc the chapter scrolls on epub.js's outer
+            // .epub-container — the iframe document itself NEVER scrolls, so
+            // edge checks must read from that element (touch and wheel alike).
+            const scroller =
+              (container.querySelector(".epub-container") as HTMLElement) ||
+              container;
+            const atEdges = () => ({
+              atTop: scroller.scrollTop <= 4,
+              atBottom:
+                scroller.scrollTop + scroller.clientHeight >=
+                scroller.scrollHeight - 4,
+            });
+
             let startX: number | null = null;
             let startY = 0;
+            let startAtTop = false;
+            let startAtBottom = false;
             doc.addEventListener(
               "touchstart",
               (e: TouchEvent) => {
                 startX = e.changedTouches[0].clientX;
                 startY = e.changedTouches[0].clientY;
+                // Only an over-scroll that BEGAN at a chapter edge may change
+                // chapters — a flick that merely lands at the edge shouldn't.
+                ({ atTop: startAtTop, atBottom: startAtBottom } = atEdges());
               },
               { passive: true },
             );
@@ -293,13 +341,10 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
                 if (scrolled) {
                   // Over-scroll past a chapter edge to change chapters: a firm
                   // upward swipe at the bottom → next, downward at top → prev.
-                  const se = doc.scrollingElement || doc.documentElement;
-                  const atBottom =
-                    se.scrollTop + se.clientHeight >= se.scrollHeight - 4;
-                  const atTop = se.scrollTop <= 4;
+                  const { atTop, atBottom } = atEdges();
                   if (Math.abs(dy) > 90 && Math.abs(dy) > Math.abs(dx)) {
-                    if (dy < 0 && atBottom) rendition.next();
-                    else if (dy > 0 && atTop) rendition.prev();
+                    if (dy < 0 && atBottom && startAtBottom) rendition.next();
+                    else if (dy > 0 && atTop && startAtTop) rendition.prev();
                   }
                   return;
                 }
@@ -314,16 +359,11 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
             );
 
             // Desktop (laptop): there's no touch swipe, so changing chapters
-            // in scroll mode relies on the wheel/trackpad. In scrolled-doc the
-            // chapter scrolls on epub.js's outer .epub-container (the iframe
-            // itself never scrolls), so read the edge from that element — the
-            // wheel event still fires inside the iframe doc. Once at an edge,
-            // accumulate wheel delta in the same direction and cross a
-            // threshold to flip to the next/prev chapter.
+            // in scroll mode relies on the wheel/trackpad — the wheel event
+            // still fires inside the iframe doc. Once at an edge, accumulate
+            // wheel delta in the same direction and cross a threshold to flip
+            // to the next/prev chapter.
             if (scrolled) {
-              const scroller =
-                (container.querySelector(".epub-container") as HTMLElement) ||
-                container;
               let overscroll = 0;
               let lastDir = 0;
               let navigating = false;
@@ -331,10 +371,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
                 "wheel",
                 (e: WheelEvent) => {
                   if (navigating) return;
-                  const atBottom =
-                    scroller.scrollTop + scroller.clientHeight >=
-                    scroller.scrollHeight - 4;
-                  const atTop = scroller.scrollTop <= 4;
+                  const { atTop, atBottom } = atEdges();
                   const dir = e.deltaY > 0 ? 1 : -1;
                   const atEdge = (dir > 0 && atBottom) || (dir < 0 && atTop);
                   if (!atEdge) {
@@ -373,15 +410,14 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
           setProgress({ cur: (cur ?? 0) + 1, total });
         });
 
+        // Desktop mouseup selection — feeds the same "Add note" pill as the
+        // selectionchange path above.
         rendition.on("selected", (cfiRange: string) => {
           book
             .getRange(cfiRange)
             .then((range) => {
               const text = range?.toString().trim() ?? "";
-              if (text) {
-                setPending({ cfiRange, text });
-                setPanelOpen(true);
-              }
+              if (text) setCandidate({ cfiRange, text });
             })
             .catch(() => {});
         });
@@ -667,17 +703,20 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
                 scrolling + over-scroll at chapter ends). */}
             {mode === "paginated" && (
               <>
+                {/* Kept narrow (15%) so they sit over the page margins — any
+                    wider and they swallow the long-press needed to select
+                    text near the edges on iOS. */}
                 <button
                   onClick={goPrev}
                   aria-label="Previous page"
-                  className="text-ink-soft/60 hover:text-ink absolute top-0 left-0 z-30 flex h-full w-[28%] items-center justify-start pl-1 text-3xl select-none [-webkit-touch-callout:none]"
+                  className="text-ink-soft/60 hover:text-ink absolute top-0 left-0 z-30 flex h-full w-[15%] items-center justify-start pl-1 text-3xl select-none [-webkit-touch-callout:none]"
                 >
                   ‹
                 </button>
                 <button
                   onClick={goNext}
                   aria-label="Next page"
-                  className="text-ink-soft/60 hover:text-ink absolute top-0 right-0 z-30 flex h-full w-[28%] items-center justify-end pr-1 text-3xl select-none [-webkit-touch-callout:none]"
+                  className="text-ink-soft/60 hover:text-ink absolute top-0 right-0 z-30 flex h-full w-[15%] items-center justify-end pr-1 text-3xl select-none [-webkit-touch-callout:none]"
                 >
                   ›
                 </button>
@@ -692,6 +731,22 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
               <p className="absolute inset-0 flex items-center justify-center text-sm text-red-600 dark:text-red-400">
                 {error}
               </p>
+            )}
+
+            {/* selection made → floating pill; tapping it opens the composer.
+                (Deliberately not automatic: opening the sheet + keyboard
+                mid-selection collapses the selection on iOS.) */}
+            {candidate && !pending && (
+              <button
+                onClick={() => {
+                  setPending(candidate);
+                  setCandidate(null);
+                  setPanelOpen(true);
+                }}
+                className="bg-accent text-accent-ink absolute bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full px-4 py-2 text-sm font-medium shadow-lg select-none hover:opacity-90 [-webkit-touch-callout:none]"
+              >
+                💬 Add note
+              </button>
             )}
 
             {/* tap a highlight → show that note's comment */}
@@ -729,7 +784,17 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
         </div>
 
         <aside
-          className={`${panelOpen ? "flex" : "hidden"} border-line bg-surface fixed inset-x-0 bottom-0 z-20 max-h-[65%] flex-col rounded-t-2xl border-t shadow-2xl sm:static sm:max-h-none sm:w-80 sm:shrink-0 sm:rounded-none sm:border-t-0 sm:border-l sm:shadow-none`}
+          className={`${panelOpen ? "flex" : "hidden"} border-line bg-surface fixed inset-x-0 bottom-0 z-20 max-h-[65%] flex-col rounded-t-2xl border-t shadow-2xl sm:static sm:max-h-none! sm:w-80 sm:shrink-0 sm:rounded-none sm:border-t-0 sm:border-l sm:shadow-none sm:transform-none!`}
+          // Ride above the iOS on-screen keyboard while composing a note
+          // (fixed elements otherwise stay behind it).
+          style={
+            kbInset > 0
+              ? {
+                  transform: `translateY(-${kbInset}px)`,
+                  maxHeight: `calc(100dvh - ${kbInset}px - 4rem)`,
+                }
+              : undefined
+          }
         >
           {/* Mobile-only sheet handle / close */}
           <button

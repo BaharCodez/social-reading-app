@@ -45,6 +45,9 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  // Shrink the layout when the on-screen keyboard opens instead of overlaying
+  // it (Android; iOS ignores this — the Reader lifts its sheet manually).
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({
