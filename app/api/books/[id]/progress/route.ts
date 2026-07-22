@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import { currentUserId } from "@/app/lib/session";
+import { actorUserId } from "@/app/lib/session";
 
 // The signed-in user's reading position in this book (synced across devices).
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const userId = await currentUserId();
-  if (!userId) return new NextResponse(null, { status: 401 });
+  const userId = await actorUserId();
+  if (!userId) return NextResponse.json({ cfi: null });
 
   const { id } = await params;
   const progress = await prisma.readingProgress.findUnique({
@@ -23,7 +23,7 @@ export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const userId = await currentUserId();
+  const userId = await actorUserId();
   if (!userId) return new NextResponse(null, { status: 401 });
 
   const { id } = await params;

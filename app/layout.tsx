@@ -26,12 +26,13 @@ const pixelify = Pixelify_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "The Same Page",
-  description: "Read books together — highlight, annotate, and share.",
+  title: "bahar's house",
+  description:
+    "A cozy pixel house — a study full of books, a writing room, and an ESP32 workshop.",
   // Standalone home-screen app on iPhone / iPad.
   appleWebApp: {
     capable: true,
-    title: "Same Page",
+    title: "Bahar's House",
     statusBarStyle: "default",
   },
   icons: {
@@ -40,7 +41,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f4ecd8",
+  themeColor: "#efe4c8",
   // Keep the layout sane inside the standalone web-app shell.
   width: "device-width",
   initialScale: 1,
@@ -65,7 +66,7 @@ export default function RootLayout({
         {/* Apply the saved theme before paint to avoid a flash. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{document.documentElement.dataset.theme=localStorage.getItem('theme')||'meadow';}catch(e){}})();`,
+            __html: `(function(){try{document.documentElement.dataset.theme=localStorage.getItem('theme')||'plantshop';}catch(e){}})();`,
           }}
         />
       </head>

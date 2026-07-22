@@ -153,3 +153,180 @@ body {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
+
+/* ---- The pixel house ------------------------------------------------------
+   Shared styling for the room pages (den, study, workshop, notes, hallway). */
+
+/* Pixel lettering everywhere in the house, regardless of theme. */
+.font-pixel {
+  font-family: var(--font-pixel), monospace;
+  letter-spacing: 0.02em;
+}
+
+/* Chunky flat frame that reads as pixel art: hard edges, drop "shadow" cast
+   as a solid offset block rather than a blur. */
+.pixel-frame {
+  border: 3px solid var(--shelf-edge);
+  box-shadow: 4px 4px 0 0 color-mix(in srgb, var(--shelf-edge) 45%, transparent);
+}
+
+/* Scrolling marquee for the writing room's ticker. The track holds two
+   copies of the text and slides one copy's width for a seamless loop. */
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.ticker-track {
+  animation: ticker-scroll 28s linear infinite;
+}
+
+/* Den game: the gardener's little walk bounce. */
+@keyframes walk-bob {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -4px;
+  }
+}
+.walk-bob {
+  animation: walk-bob 0.35s ease-in-out infinite;
+}
+
+/* Fireflies drifting around the den after dark. */
+@keyframes firefly {
+  0%,
+  100% {
+    translate: 0 0;
+    opacity: 0.15;
+  }
+  25% {
+    opacity: 0.9;
+  }
+  50% {
+    translate: 16px -22px;
+    opacity: 0.35;
+  }
+  75% {
+    opacity: 0.8;
+  }
+}
+.firefly {
+  animation: firefly 5s ease-in-out infinite;
+}
+
+/* A wisp of steam off the tea mug. */
+@keyframes steam-rise {
+  0% {
+    translate: 0 0;
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.8;
+  }
+  100% {
+    translate: 2px -8px;
+    opacity: 0;
+  }
+}
+.steam {
+  animation: steam-rise 2.2s ease-out infinite;
+}
+
+/* Writing-room article body (rendered markdown). */
+.article {
+  line-height: 1.8;
+  color: var(--ink);
+}
+.article h1,
+.article h2 {
+  font-family: var(--font-fraunces), serif;
+  font-weight: 700;
+  font-size: 1.5rem;
+  margin: 1.75rem 0 0.5rem;
+}
+.article h3 {
+  font-family: var(--font-fraunces), serif;
+  font-weight: 600;
+  font-size: 1.2rem;
+  margin: 1.5rem 0 0.4rem;
+}
+.article p {
+  margin: 0.8rem 0;
+}
+.article a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.article img {
+  display: block;
+  margin: 1.5rem auto;
+  max-height: 28rem;
+  border: 3px solid var(--shelf-edge);
+  box-shadow: 4px 4px 0 0 color-mix(in srgb, var(--shelf-edge) 45%, transparent);
+}
+.article blockquote {
+  border-left: 4px solid var(--accent-2);
+  margin: 1rem 0;
+  padding-left: 1rem;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+.article ul,
+.article ol {
+  margin: 0.8rem 0;
+  padding-left: 1.5rem;
+  list-style: revert;
+}
+.article code {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.9em;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+.article pre {
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  padding: 0.9rem 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+.article pre code {
+  background: none;
+  padding: 0;
+}
+.article hr {
+  border: none;
+  border-top: 3px solid var(--line);
+  margin: 2rem auto;
+  width: 40%;
+}
+
+/* Fade to black when walking through a door. */
+@keyframes room-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.room-fade {
+  animation: room-fade-in 0.3s ease-in forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track,
+  .walk-bob,
+  .firefly,
+  .steam {
+    animation: none;
+  }
+}

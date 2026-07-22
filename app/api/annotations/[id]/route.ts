@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import { currentUserId } from "@/app/lib/session";
+import { actorUserId } from "@/app/lib/session";
 
 // You can only delete your own notes.
 export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const userId = await currentUserId();
+  const userId = await actorUserId();
   if (!userId) return new NextResponse(null, { status: 401 });
 
   const { id } = await params;

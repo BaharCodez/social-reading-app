@@ -50,3 +50,9 @@ dev.db*
 # design inspiration (reference only, not app assets)
 /design-inspo/*
 !/design-inspo/README.md
+
+# macOS junk accidentally created at repo root
+/Library/
+
+# editor swap files
+*.swp

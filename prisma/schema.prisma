@@ -96,6 +96,54 @@ model Annotation {
   @@index([bookId])
 }
 
+// --- Writing room ----------------------------------------------------------
+
+// A blog post, written in markdown. Drafts have publishedAt = null and are
+// only visible when signed in.
+model Post {
+  id          String    @id @default(cuid())
+  title       String
+  content     String
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// An image embedded in a post — stored the same way books are (bytes in
+// the DB), served from /api/images/[id].
+model Image {
+  id        String   @id @default(cuid())
+  mime      String
+  data      Bytes
+  createdAt DateTime @default(now())
+}
+
+// A sticky note on the hobby board: something to read about, write about,
+// explore, or solve.
+model Idea {
+  id        String   @id @default(cuid())
+  bucket    String // "read" | "write" | "explore" | "solve"
+  text      String
+  done      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// --- Hallway -------------------------------------------------------------
+
+// A frame hanging on the hallway wall: a job, a project, or any achievement
+// worth showing off. Added/removed from the hallway page while signed in.
+model Frame {
+  id        String   @id @default(cuid())
+  kind      String // "job" | "project" | "achievement"
+  title     String
+  subtitle  String   @default("")
+  detail    String   @default("")
+  years     String? // freeform: "2023–now", "summer 2024", …
+  link      String?
+  sort      Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
 // Per-user reading position in a book (synced across that user's devices).
 model ReadingProgress {
   id        String   @id @default(cuid())

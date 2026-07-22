@@ -17,19 +17,6 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [googleBusy, setGoogleBusy] = useState(false);
-
-  // signIn("google") talks to the auth API (over a possibly cold serverless
-  // function) before it can navigate — on a phone that's seconds of silence,
-  // so show progress immediately or the tap feels like it didn't register.
-  function onGoogle() {
-    setGoogleBusy(true);
-    setError(null);
-    signIn("google", { callbackUrl: "/" }).catch(() => {
-      setGoogleBusy(false);
-      setError("Couldn't reach Google sign-in. Please try again.");
-    });
-  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,7 +45,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
         setError("Incorrect email or password.");
         return;
       }
-      router.push("/");
+      router.push("/study");
       router.refresh();
     } finally {
       setBusy(false);
@@ -81,25 +68,10 @@ export default function AuthForm({ mode }: { mode: Mode }) {
           {isSignup ? "Create your account" : "Welcome back"}
         </h1>
         <p className="text-ink-soft mt-2 text-center text-sm">
-          Read together — share highlights and notes with friends.
+          The study is private — sign in to open the books.
         </p>
 
-        <button
-          type="button"
-          onClick={onGoogle}
-          disabled={googleBusy}
-          className="border-line text-ink hover:bg-bg active:bg-bg mt-8 flex w-full touch-manipulation items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition active:scale-[0.98] disabled:opacity-60"
-        >
-          {googleBusy ? "Connecting to Google…" : "Continue with Google"}
-        </button>
-
-        <div className="text-ink-soft my-6 flex items-center gap-3 text-xs">
-          <span className="bg-line h-px flex-1" />
-          or
-          <span className="bg-line h-px flex-1" />
-        </div>
-
-        <form onSubmit={onSubmit} className="space-y-3">
+        <form onSubmit={onSubmit} className="mt-8 space-y-3">
           {isSignup && (
             <input
               type="text"
