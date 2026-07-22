@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import { currentUserId } from "@/app/lib/session";
+import { actorUserId } from "@/app/lib/session";
 
-// One shared library: every signed-in user sees all books, tagged with who
-// added each one (and how many notes it has).
+// One shared library, no sign-in needed: anonymous visitors act as the
+// site owner, so `mine` lights up their books and the delete buttons.
 export async function GET() {
-  const userId = await currentUserId();
-  if (!userId) return new NextResponse(null, { status: 401 });
+  const userId = await actorUserId();
 
   const books = await prisma.book.findMany({
     orderBy: { createdAt: "desc" },
@@ -38,7 +37,7 @@ export async function GET() {
 
 // Upload a new EPUB (multipart form: file, title, author, coverDataUrl).
 export async function POST(req: Request) {
-  const userId = await currentUserId();
+  const userId = await actorUserId();
   if (!userId) return new NextResponse(null, { status: 401 });
 
   const form = await req.formData();

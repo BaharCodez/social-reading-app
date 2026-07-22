@@ -8,10 +8,12 @@ import { deleteBook, fetchBooks, uploadBook } from "@/app/lib/api";
 import { parseBookMetadata } from "@/app/lib/epub";
 import type { BookMeta, CurrentUser } from "@/app/lib/types";
 
+// `currentUser` is null for visitors: the shelf and the books are public,
+// only adding/removing books and writing notes need the signed-in owner.
 export default function ReaderApp({
   currentUser,
 }: {
-  currentUser: CurrentUser;
+  currentUser: CurrentUser | null;
 }) {
   const [books, setBooks] = useState<BookMeta[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -145,7 +147,7 @@ export default function ReaderApp({
       <UploadDropzone
         busy={busy}
         error={error}
-        userName={currentUser.name}
+        userName={currentUser?.name ?? "friend"}
         onFile={addBook}
       />
     );
@@ -156,7 +158,7 @@ export default function ReaderApp({
       books={books}
       busy={busy}
       error={error}
-      userName={currentUser.name}
+      userName={currentUser?.name ?? null}
       onFile={addBook}
       onOpen={setOpenId}
       onDelete={removeBook}

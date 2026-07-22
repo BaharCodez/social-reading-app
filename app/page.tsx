@@ -1,17 +1,58 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth } from "@/app/lib/auth";
-import ReaderApp from "./components/ReaderApp";
+import ThemePicker from "./components/ThemePicker";
+import AmbientMusic from "./components/AmbientMusic";
+import DenGame from "./components/DenGame";
 
-export default async function Home() {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
+/* The den: a walkable pixel room where every piece of furniture is a door
+   into a section of the site. Old share links (`/?book=…`) predate the
+   house and are forwarded to the study. */
+
+export default async function Den({
+  searchParams,
+}: {
+  searchParams: Promise<{ book?: string | string[] }>;
+}) {
+  const { book } = await searchParams;
+  if (typeof book === "string" && book) {
+    redirect(`/study?book=${encodeURIComponent(book)}`);
+  }
 
   return (
-    <ReaderApp
-      currentUser={{
-        id: session.user.id,
-        name: session.user.name ?? session.user.email ?? "You",
-      }}
-    />
+    <main className="flex flex-1 flex-col overflow-hidden">
+      <header className="flex items-center justify-end gap-2 px-4 pt-3 sm:px-6">
+        <AmbientMusic />
+        <ThemePicker />
+      </header>
+
+      {/* the hanging sign */}
+      <div className="flex flex-col items-center px-4">
+        <div className="bg-shelf-edge h-4 w-1" />
+        <h1 className="font-pixel text-ink pixel-frame bg-surface px-6 py-3 text-3xl sm:text-4xl">
+          bahar&apos;s house
+        </h1>
+        <p className="text-ink-soft mt-3 text-sm">
+          a cozy corner for books, notes &amp; blinking lights
+        </p>
+        <p className="font-pixel text-ink-soft/80 mt-2 text-xs">
+          walk with ← → (or tap the floor) · press E at a door to enter
+        </p>
+      </div>
+
+      {/* the room */}
+      <div className="mt-auto">
+        <DenGame />
+      </div>
+
+      {/* the foundation */}
+      <div className="border-shelf-edge bg-shelf-edge flex h-9 shrink-0 items-center justify-center border-t-4">
+        <Link
+          href="/login"
+          className="font-pixel text-accent-ink/70 hover:text-accent-ink text-xs transition-colors"
+        >
+          owner&apos;s entrance
+        </Link>
+      </div>
+    </main>
   );
 }

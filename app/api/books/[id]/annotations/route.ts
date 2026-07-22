@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import { currentUserId } from "@/app/lib/session";
+import { actorUserId } from "@/app/lib/session";
 import { annotationInputSchema } from "@/app/lib/validation";
 
-// Everyone reading a book sees everyone's notes — this is the social layer.
+// Everyone reading a book sees everyone's notes — visitors included; only
+// writing them requires an account.
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const userId = await currentUserId();
-  if (!userId) return new NextResponse(null, { status: 401 });
+  const userId = await actorUserId();
 
   const { id } = await params;
   const annotations = await prisma.annotation.findMany({
@@ -45,7 +45,7 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const userId = await currentUserId();
+  const userId = await actorUserId();
   if (!userId) return new NextResponse(null, { status: 401 });
 
   const { id } = await params;

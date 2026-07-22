@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import { currentUserId } from "@/app/lib/session";
+import { actorUserId } from "@/app/lib/session";
 
-// Stream the raw EPUB. Any signed-in user may open a book by id, so a shared
-// link works for friends — they don't need to own it.
+// Stream the raw EPUB. The shelf is public, so anyone may open a book.
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const userId = await currentUserId();
-  if (!userId) return new NextResponse(null, { status: 401 });
-
   const { id } = await params;
   const book = await prisma.book.findUnique({
     where: { id },
@@ -32,7 +28,7 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const userId = await currentUserId();
+  const userId = await actorUserId();
   if (!userId) return new NextResponse(null, { status: 401 });
 
   const { id } = await params;

@@ -1,5 +1,4 @@
 import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
@@ -15,12 +14,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   pages: { signIn: "/login" },
   providers: [
-    // Reads AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET from the environment.
-    // `select_account` lets you pick an account without re-granting consent
-    // every time, so repeat logins are one click.
-    Google({
-      authorization: { params: { prompt: "select_account" } },
-    }),
     Credentials({
       credentials: { email: {}, password: {} },
       authorize: async (raw) => {

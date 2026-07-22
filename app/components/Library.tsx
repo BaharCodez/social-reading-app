@@ -10,7 +10,7 @@ interface LibraryProps {
   books: BookMeta[];
   busy: boolean;
   error: string | null;
-  userName: string;
+  userName: string | null; // null = visitor browsing the public shelf
   onFile: (file: File) => void;
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
@@ -18,6 +18,33 @@ interface LibraryProps {
 
 // How many books sit on one shelf before starting the next.
 const PER_SHELF = 5;
+
+// Potted plants that sit on the shelf ledges (Plant Shop theme only).
+// Heights are per-sprite so tall plants and little bowls keep their
+// relative proportions.
+const SHELF_PLANTS = [
+  { src: "/decor/plants/plant-1.png", size: "h-12 sm:h-14" }, // leafy pot
+  { src: "/decor/plants/plant-2.png", size: "h-6 sm:h-7" }, // red bowl
+  { src: "/decor/plants/plant-3.png", size: "h-12 sm:h-14" }, // violet
+  { src: "/decor/plants/plant-4.png", size: "h-12 sm:h-14" }, // cactus
+  { src: "/decor/plants/plant-5.png", size: "h-9 sm:h-10" }, // small cactus
+  { src: "/decor/plants/plant-6.png", size: "h-6 sm:h-7" }, // flower bowl
+  { src: "/decor/plants/plant-7.png", size: "h-6 sm:h-7" }, // berry bowl
+  { src: "/decor/plants/plant-8.png", size: "h-6 sm:h-7" }, // sprout bowl
+] as const;
+
+function ShelfPlant({ index }: { index: number }) {
+  const plant = SHELF_PLANTS[index % SHELF_PLANTS.length];
+  // translate-y-3 cancels the shelf row's pb-3 so pots rest on the ledge.
+  return (
+    <img
+      src={plant.src}
+      alt=""
+      aria-hidden
+      className={`plant-decor pointer-events-none w-auto shrink-0 translate-y-3 select-none [image-rendering:pixelated] ${plant.size}`}
+    />
+  );
+}
 
 export default function Library({
   books,
@@ -89,6 +116,9 @@ export default function Library({
           {shelves.map((shelf, shelfIndex) => (
             <section key={shelfIndex}>
               <div className="touch-scroll flex items-end gap-5 overflow-x-auto px-1 pb-3">
+                {shelfIndex % 2 === 1 && (
+                  <ShelfPlant index={shelfIndex * 2 + 1} />
+                )}
                 {shelf.map((book) => (
                   <BookSpine
                     key={book.id}
@@ -97,6 +127,7 @@ export default function Library({
                     onDelete={onDelete}
                   />
                 ))}
+                <ShelfPlant index={shelfIndex * 2} />
               </div>
               {/* wooden shelf ledge */}
               <div

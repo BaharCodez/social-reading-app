@@ -14,4 +14,4 @@ export const THEMES: Theme[] = [
   { id: "forest", label: "Forest", swatch: "#5c7a48" },
 ];
 
-export const DEFAULT_THEME = "meadow";
+export const DEFAULT_THEME = "plantshop";
