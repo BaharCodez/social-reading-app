@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import RoomShell from "@/app/components/RoomShell";
 
@@ -29,6 +30,8 @@ function stamp(date: Date) {
 }
 
 export default async function NotesPage() {
+  // Render per request — entries change, and CI builds have no database.
+  await connection();
   const posts = await prisma.post.findMany({
     orderBy: [{ publishedAt: { sort: "desc", nulls: "first" } }],
     select: { id: true, title: true, content: true, publishedAt: true },

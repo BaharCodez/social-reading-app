@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import RoomShell from "@/app/components/RoomShell";
 import WorkshopShelf from "@/app/components/WorkshopShelf";
@@ -35,6 +36,8 @@ function Tile({
 }
 
 export default async function WorkshopPage() {
+  // Render per request — the shelf changes, and CI builds have no database.
+  await connection();
   // The books on the sandbox shelf — projects built without AI.
   const sandboxFrames = await prisma.frame.findMany({
     where: { kind: "sandbox" },

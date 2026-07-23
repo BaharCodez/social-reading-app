@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import RoomShell from "@/app/components/RoomShell";
 import HallwayWall from "@/app/components/HallwayWall";
@@ -10,6 +11,8 @@ export const metadata: Metadata = {
 
 // The wall is wide open — anyone in the house can hang or take down frames.
 export default async function HallwayPage() {
+  // Render per request — the wall changes, and CI builds have no database.
+  await connection();
   const frames = await prisma.frame.findMany({
     // sandbox builds live on the workshop shelf, not the hallway wall
     where: { kind: { not: "sandbox" } },

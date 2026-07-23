@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import ThemePicker from "./components/ThemePicker";
 import AmbientMusic from "./components/AmbientMusic";
@@ -18,6 +19,10 @@ export default async function Den({
   if (typeof book === "string" && book) {
     redirect(`/study?book=${encodeURIComponent(book)}`);
   }
+
+  // Render per request (searchParams already implies it, but the frame
+  // query below must never run during a database-less CI build).
+  await connection();
 
   // The first few hallway frames get auto-hung on the den wall.
   const wallFrames = await prisma.frame.findMany({
