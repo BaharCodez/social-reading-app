@@ -144,6 +144,16 @@ model Frame {
   createdAt DateTime @default(now())
 }
 
+// One tick per habit per day — powers the daily room's streak board.
+model DailyTick {
+  id        String   @id @default(cuid())
+  kind      String // "article" | "spanish"
+  day       String // visitor-local date, "YYYY-MM-DD"
+  createdAt DateTime @default(now())
+
+  @@unique([kind, day])
+}
+
 // Per-user reading position in a book (synced across that user's devices).
 model ReadingProgress {
   id        String   @id @default(cuid())

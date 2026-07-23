@@ -5,7 +5,8 @@ import IdeaBoard from "@/app/components/IdeaBoard";
 
 export const metadata: Metadata = {
   title: "the hobby board — bahar's house",
-  description: "A corkboard of things to read about, write about, explore, and solve.",
+  description:
+    "A corkboard of things to read about, write about, explore, and solve.",
 };
 
 export default async function BoardPage() {

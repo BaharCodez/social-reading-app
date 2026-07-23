@@ -4,13 +4,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { Frame } from "@/app/components/HallwayWall";
 
 /* ---- The den as a tiny side-scroller --------------------------------------
    The room is a fixed-width "world"; the camera follows the gardener so the
    same scene works on a phone and a desktop. Furniture stays real links —
    walking and pressing E is the fun path, clicking/tapping still works. */
 
-const WORLD_W = 1320; // px, world coordinates
+const WORLD_W = 1560; // px, world coordinates
 const FLOOR_H = 56; // walkable floor strip height
 const WALK_SPEED = 240; // px / second
 const NEAR = 100; // how close counts as "at" a piece of furniture
@@ -22,7 +23,12 @@ const ROOMS = [
   { href: "/notes", label: "writing room", x: 490 },
   { href: "/workshop", label: "workshop", x: 770 },
   { href: "/hallway", label: "hallway", x: 1060 },
+  { href: "/daily", label: "daily room", x: 1330 },
 ] as const;
+
+// Wall spots for the picture gallery — either side of the window (560–704).
+const FRAME_SLOTS = [120, 255, 390, 780, 915];
+const FRAME_ACCENTS = ["bg-accent", "bg-accent-2", "bg-ink-soft/60"];
 
 // The nearest piece of furniture within reach of position x, if any.
 // `s` is the world scale (wide screens stretch the room to fill).
@@ -45,6 +51,7 @@ const GARDENER_LINES = [
   "the esp32 hasn't phoned home yet…",
   "mind the plants, they bite. (they don't.)",
   "press E at a door to go in!",
+  "today's paper is on the stand →",
 ];
 
 /* Retro square-wave blip, generated on the fly — no audio files. */
@@ -71,8 +78,20 @@ function blip(freq = 520) {
 
 function PixelBookshelf() {
   const shelves = [
-    ["h-10 bg-accent", "h-8 bg-accent-2", "h-9 bg-ink-soft", "h-10 bg-accent-2", "h-7 bg-accent"],
-    ["h-8 bg-accent-2", "h-10 bg-accent", "h-7 bg-accent-2", "h-9 bg-accent", "h-8 bg-ink-soft"],
+    [
+      "h-10 bg-accent",
+      "h-8 bg-accent-2",
+      "h-9 bg-ink-soft",
+      "h-10 bg-accent-2",
+      "h-7 bg-accent",
+    ],
+    [
+      "h-8 bg-accent-2",
+      "h-10 bg-accent",
+      "h-7 bg-accent-2",
+      "h-9 bg-accent",
+      "h-8 bg-ink-soft",
+    ],
   ];
   return (
     <div className="border-shelf-edge bg-shelf w-36 border-4 px-1.5 pt-1.5 sm:w-40">
@@ -174,16 +193,118 @@ function PixelDoorway() {
   );
 }
 
+function PixelNewsstand() {
+  return (
+    <div className="w-36 sm:w-40">
+      <div className="flex items-end justify-center gap-3 px-3">
+        {/* a little globe for the explorer */}
+        <div className="flex flex-col items-center">
+          <div className="border-shelf-edge relative h-10 w-10 overflow-hidden rounded-full border-2 bg-sky-300">
+            <div className="absolute top-2 left-1 h-3 w-4 bg-emerald-600" />
+            <div className="absolute right-1 bottom-2 h-4 w-3 bg-emerald-700" />
+            <div className="absolute top-6 left-5 h-2 w-2 bg-emerald-500" />
+          </div>
+          <div className="bg-shelf-edge h-3 w-1.5" />
+          <div className="bg-shelf-edge h-1 w-6" />
+        </div>
+        {/* today's papers, stacked */}
+        <div className="space-y-0.5">
+          <div className="border-line bg-surface h-2.5 w-12 border" />
+          <div className="border-line bg-surface h-2.5 w-12 border" />
+          <div className="border-line bg-surface flex h-3 w-12 items-center border-2 px-0.5">
+            <div className="bg-ink-soft/60 h-0.5 w-full" />
+          </div>
+        </div>
+      </div>
+      <div className="border-shelf-edge bg-shelf h-4 border-4" />
+      <div className="flex justify-between px-3">
+        <div className="bg-shelf-edge h-12 w-3" />
+        <div className="bg-shelf-edge h-12 w-3" />
+      </div>
+    </div>
+  );
+}
+
 const FURNITURE: Record<string, () => React.ReactNode> = {
   "/study": PixelBookshelf,
   "/notes": PixelDesk,
   "/workshop": PixelWorkbench,
   "/hallway": PixelDoorway,
+  "/daily": PixelNewsstand,
 };
+
+/* A little picture frame on the den wall — one of the hallway's frames,
+   auto-hung. Click to peek; the full story lives in the hallway. */
+function WallFrame({
+  frame,
+  x,
+  scale,
+  accent,
+  open,
+  onToggle,
+}: {
+  frame: Frame;
+  x: number;
+  scale: number;
+  accent: string;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div
+      className="absolute top-6 -translate-x-1/2"
+      style={{ left: x * scale }}
+    >
+      <button
+        type="button"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          blip(520);
+          onToggle();
+        }}
+        aria-expanded={open}
+        aria-label={`Framed on the wall: ${frame.title}`}
+        title={frame.title}
+        className={`border-shelf-edge bg-surface block border-4 p-1 transition-transform hover:-translate-y-0.5 ${
+          open ? "-translate-y-0.5" : ""
+        }`}
+      >
+        <div className={`${accent} flex h-12 w-16 items-end p-1`}>
+          <span className="font-pixel text-accent-ink line-clamp-2 text-left text-[9px] leading-tight">
+            {frame.title}
+          </span>
+        </div>
+      </button>
+      {open && (
+        <div
+          className="pixel-frame bg-surface absolute top-full left-1/2 z-20 mt-2 w-48 -translate-x-1/2 p-2.5 text-left"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <p className="font-pixel text-ink text-xs">{frame.title}</p>
+          {frame.years && (
+            <p className="text-accent-2 mt-0.5 font-mono text-[10px] font-bold">
+              {frame.years}
+            </p>
+          )}
+          {frame.subtitle && (
+            <p className="text-ink-soft mt-1 text-xs">{frame.subtitle}</p>
+          )}
+          <Link
+            href="/hallway"
+            className="font-pixel text-accent mt-2 block text-[10px] underline-offset-2 hover:underline"
+          >
+            see the hallway →
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ---- The game -------------------------------------------------------------- */
 
-export default function DenGame() {
+export default function DenGame({ frames = [] }: { frames?: Frame[] }) {
   const router = useRouter();
   const stageRef = useRef<HTMLDivElement>(null);
 
@@ -195,6 +316,7 @@ export default function DenGame() {
   const [night, setNight] = useState(false);
   const [bubble, setBubble] = useState<string | null>(null);
   const [leaving, setLeaving] = useState<string | null>(null);
+  const [openFrameId, setOpenFrameId] = useState<string | null>(null);
 
   const keys = useRef(new Set<string>());
   const target = useRef<number | null>(null);
@@ -365,6 +487,7 @@ export default function DenGame() {
 
   // Tap/click the floor to walk there.
   const onStageTap = (e: React.PointerEvent) => {
+    setOpenFrameId(null);
     const rect = stageRef.current?.getBoundingClientRect();
     if (!rect) return;
     target.current = Math.max(
@@ -423,6 +546,21 @@ export default function DenGame() {
           />
         </div>
 
+        {/* the picture gallery — hallway frames, auto-hung on the wall */}
+        {frames.slice(0, FRAME_SLOTS.length).map((frame, i) => (
+          <WallFrame
+            key={frame.id}
+            frame={frame}
+            x={FRAME_SLOTS[i]}
+            scale={scale}
+            accent={FRAME_ACCENTS[i % FRAME_ACCENTS.length]}
+            open={openFrameId === frame.id}
+            onToggle={() =>
+              setOpenFrameId(openFrameId === frame.id ? null : frame.id)
+            }
+          />
+        ))}
+
         {/* furniture (real links: click/tap enters directly) */}
         {ROOMS.map((room) => {
           const Piece = FURNITURE[room.href];
@@ -435,7 +573,9 @@ export default function DenGame() {
             >
               <span
                 className={`font-pixel pixel-frame bg-surface text-ink px-2 py-1 text-xs transition-all duration-200 ${
-                  isActive ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-1 opacity-0"
+                  isActive
+                    ? "translate-y-0 opacity-100"
+                    : "pointer-events-none translate-y-1 opacity-0"
                 }`}
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={() => isActive && enterRoom(room)}
@@ -476,7 +616,7 @@ export default function DenGame() {
           aria-hidden
           className="absolute h-24 w-auto [image-rendering:pixelated]"
           style={{
-            left: 1210 * scale,
+            left: 1480 * scale,
             bottom: FLOOR_H - 2,
             transform: "translateX(-50%)",
           }}
@@ -513,7 +653,7 @@ export default function DenGame() {
 
         {/* fireflies, after dark */}
         {night &&
-          [220, 420, 640, 900, 1150].map((x, i) => (
+          [220, 420, 640, 900, 1150, 1420].map((x, i) => (
             <span
               key={x}
               className="firefly absolute h-1.5 w-1.5 rounded-full bg-amber-300"
