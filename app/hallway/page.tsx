@@ -11,6 +11,8 @@ export const metadata: Metadata = {
 // The wall is wide open — anyone in the house can hang or take down frames.
 export default async function HallwayPage() {
   const frames = await prisma.frame.findMany({
+    // sandbox builds live on the workshop shelf, not the hallway wall
+    where: { kind: { not: "sandbox" } },
     orderBy: [{ sort: "asc" }, { createdAt: "asc" }],
     select: {
       id: true,

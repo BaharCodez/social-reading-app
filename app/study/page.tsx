@@ -16,9 +16,7 @@ export default async function StudyPage() {
   return (
     <ReaderApp
       currentUser={
-        user
-          ? { id: user.id, name: user.name ?? user.email ?? "You" }
-          : null
+        user ? { id: user.id, name: user.name ?? user.email ?? "You" } : null
       }
     />
   );

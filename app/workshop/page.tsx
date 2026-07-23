@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import { prisma } from "@/app/lib/prisma";
 import RoomShell from "@/app/components/RoomShell";
+import WorkshopShelf from "@/app/components/WorkshopShelf";
 
 export const metadata: Metadata = {
   title: "the workshop — bahar's house",
-  description: "Mission control for the ESP32 on the workbench.",
+  description:
+    "Mission control for the ESP32 on the workbench, and a shelf of hand-built sandbox projects.",
 };
 
 /* Mission-control interior: a bento of telemetry tiles. Everything renders
@@ -31,7 +34,22 @@ function Tile({
   );
 }
 
-export default function WorkshopPage() {
+export default async function WorkshopPage() {
+  // The books on the sandbox shelf — projects built without AI.
+  const sandboxFrames = await prisma.frame.findMany({
+    where: { kind: "sandbox" },
+    orderBy: [{ sort: "asc" }, { createdAt: "asc" }],
+    select: {
+      id: true,
+      kind: true,
+      title: true,
+      subtitle: true,
+      detail: true,
+      years: true,
+      link: true,
+    },
+  });
+
   return (
     <RoomShell
       title="the workshop"
@@ -78,10 +96,12 @@ export default function WorkshopPage() {
         </Tile>
       </div>
 
+      <WorkshopShelf frames={sandboxFrames} canEdit />
+
       <p className="text-ink-soft mx-auto max-w-md px-6 pb-10 text-center text-sm leading-relaxed">
-        This panel will talk to the real board over the network — first
-        project: the plant waterer. Until then, the workbench is set up and
-        the soldering iron is warm.
+        This panel will talk to the real board over the network — first project:
+        the plant waterer. Until then, the workbench is set up and the soldering
+        iron is warm.
       </p>
     </RoomShell>
   );

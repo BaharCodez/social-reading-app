@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 export interface Frame {
   id: string;
-  kind: string; // "job" | "project" | "achievement"
+  kind: string; // "job" | "project" | "achievement" | "sandbox" (workshop shelf)
   title: string;
   subtitle: string;
   detail: string;

@@ -28,9 +28,18 @@ export const ideaInputSchema = z.object({
   text: z.string().min(1, "Write something on the note.").max(500).trim(),
 });
 
-// A frame on the hallway wall (job / project / achievement).
+// A daily-room habit tick: one per habit per (visitor-local) day.
+export const dailyTickSchema = z.object({
+  kind: z.enum(["article", "spanish", "listening"]),
+  day: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Day must look like 2026-07-23."),
+});
+
+// A frame on the hallway wall (job / project / achievement),
+// or a hand-built sandbox project shelved in the workshop.
 export const frameInputSchema = z.object({
-  kind: z.enum(["job", "project", "achievement"]),
+  kind: z.enum(["job", "project", "achievement", "sandbox"]),
   title: z.string().min(1, "Give it a title.").max(120).trim(),
   subtitle: z.string().max(600).trim().default(""),
   detail: z.string().max(2000).trim().default(""),

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { prisma } from "@/app/lib/prisma";
 import ThemePicker from "./components/ThemePicker";
 import AmbientMusic from "./components/AmbientMusic";
 import DenGame from "./components/DenGame";
@@ -17,6 +18,22 @@ export default async function Den({
   if (typeof book === "string" && book) {
     redirect(`/study?book=${encodeURIComponent(book)}`);
   }
+
+  // The first few hallway frames get auto-hung on the den wall.
+  const wallFrames = await prisma.frame.findMany({
+    where: { kind: { not: "sandbox" } },
+    orderBy: [{ sort: "asc" }, { createdAt: "asc" }],
+    take: 5,
+    select: {
+      id: true,
+      kind: true,
+      title: true,
+      subtitle: true,
+      detail: true,
+      years: true,
+      link: true,
+    },
+  });
 
   return (
     <main className="flex flex-1 flex-col overflow-hidden">
@@ -41,7 +58,7 @@ export default async function Den({
 
       {/* the room */}
       <div className="mt-auto">
-        <DenGame />
+        <DenGame frames={wallFrames} />
       </div>
 
       {/* the foundation */}

@@ -13,3 +13,5 @@ next-env.d.ts
 
 # Lockfiles (let the package manager own formatting)
 package-lock.json
+# Understand-Anything knowledge-graph data (generated)
+.ua/

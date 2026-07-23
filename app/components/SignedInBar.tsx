@@ -6,11 +6,7 @@ import ThemePicker from "./ThemePicker";
 import AmbientMusic from "./AmbientMusic";
 
 // `userName` is null for visitors browsing the public shelf.
-export default function SignedInBar({
-  userName,
-}: {
-  userName: string | null;
-}) {
+export default function SignedInBar({ userName }: { userName: string | null }) {
   return (
     <div className="touch-scroll text-ink-soft flex items-center gap-3 overflow-x-auto px-4 py-3 text-sm sm:px-6">
       <Link

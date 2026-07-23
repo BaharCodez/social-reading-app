@@ -56,3 +56,6 @@ dev.db*
 
 # editor swap files
 *.swp
+
+# Understand-Anything knowledge-graph data (generated, regenerable via /understand)
+.ua/

@@ -71,35 +71,6 @@ export default async function NotesPage() {
           </div>
         </div>
 
-        {/* now reading / currently building */}
-        <div className="border-ink grid grid-cols-1 border-b-4 sm:grid-cols-2">
-          <div className="border-ink py-5 pr-5 max-sm:border-b-4 sm:border-r-4">
-            <h3 className="font-pixel text-ink-soft text-xs tracking-wider uppercase">
-              now reading
-            </h3>
-            <p className="text-ink mt-2 font-serif text-2xl font-semibold">
-              — pick a book off the shelf —
-            </p>
-            <div className="mt-3 flex items-center gap-2 font-mono text-xs">
-              <div className="bg-ink/10 h-2 flex-1">
-                <div className="bg-accent h-2 w-0" />
-              </div>
-              <span className="text-ink-soft">0%</span>
-            </div>
-          </div>
-          <div className="py-5 sm:pl-5">
-            <h3 className="font-pixel text-ink-soft text-xs tracking-wider uppercase">
-              currently building
-            </h3>
-            <p className="text-ink mt-2 font-serif text-2xl font-semibold">
-              ESP32 plant waterer ⚡
-            </p>
-            <p className="text-ink-soft mt-3 font-mono text-xs">
-              status: parts on the desk
-            </p>
-          </div>
-        </div>
-
         {/* entries */}
         <div className="mt-6 space-y-6">
           {posts.map((post) => (

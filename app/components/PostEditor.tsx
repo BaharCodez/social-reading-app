@@ -38,7 +38,10 @@ export default function PostEditor({
     setContent(next);
     requestAnimationFrame(() => {
       el.focus();
-      el.setSelectionRange(a + before.length, a + before.length + selected.length);
+      el.setSelectionRange(
+        a + before.length,
+        a + before.length + selected.length,
+      );
     });
   }
 
@@ -152,11 +155,7 @@ export default function PostEditor({
         >
           link
         </button>
-        <button
-          type="button"
-          className={tool}
-          onClick={() => block("---\n\n")}
-        >
+        <button type="button" className={tool} onClick={() => block("---\n\n")}>
           ⁂
         </button>
         <button

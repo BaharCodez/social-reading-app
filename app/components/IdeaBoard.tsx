@@ -11,9 +11,24 @@ export interface Idea {
 }
 
 const BUCKETS = [
-  { key: "read", label: "read about", note: "bg-amber-200", tape: "bg-amber-400/50" },
-  { key: "write", label: "write about", note: "bg-sky-200", tape: "bg-sky-400/50" },
-  { key: "explore", label: "explore", note: "bg-lime-200", tape: "bg-lime-500/40" },
+  {
+    key: "read",
+    label: "read about",
+    note: "bg-amber-200",
+    tape: "bg-amber-400/50",
+  },
+  {
+    key: "write",
+    label: "write about",
+    note: "bg-sky-200",
+    tape: "bg-sky-400/50",
+  },
+  {
+    key: "explore",
+    label: "explore",
+    note: "bg-lime-200",
+    tape: "bg-lime-500/40",
+  },
   { key: "solve", label: "solve", note: "bg-rose-200", tape: "bg-rose-400/50" },
 ] as const;
 

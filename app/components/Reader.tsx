@@ -743,7 +743,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
                   setCandidate(null);
                   setPanelOpen(true);
                 }}
-                className="bg-accent text-accent-ink absolute bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full px-4 py-2 text-sm font-medium shadow-lg select-none hover:opacity-90 [-webkit-touch-callout:none]"
+                className="bg-accent text-accent-ink absolute bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full px-4 py-2 text-sm font-medium shadow-lg select-none [-webkit-touch-callout:none] hover:opacity-90"
               >
                 💬 Add note
               </button>
@@ -784,7 +784,7 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
         </div>
 
         <aside
-          className={`${panelOpen ? "flex" : "hidden"} border-line bg-surface fixed inset-x-0 bottom-0 z-20 max-h-[65%] flex-col rounded-t-2xl border-t shadow-2xl sm:static sm:max-h-none! sm:w-80 sm:shrink-0 sm:rounded-none sm:border-t-0 sm:border-l sm:shadow-none sm:transform-none!`}
+          className={`${panelOpen ? "flex" : "hidden"} border-line bg-surface fixed inset-x-0 bottom-0 z-20 max-h-[65%] flex-col rounded-t-2xl border-t shadow-2xl sm:static sm:max-h-none! sm:w-80 sm:shrink-0 sm:transform-none! sm:rounded-none sm:border-t-0 sm:border-l sm:shadow-none`}
           // Ride above the iOS on-screen keyboard while composing a note
           // (fixed elements otherwise stay behind it).
           style={
