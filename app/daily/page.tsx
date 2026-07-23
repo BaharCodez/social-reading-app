@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { articleOfTheDay } from "@/app/lib/feeds";
 import { listeningOfTheDay, sceneOfTheDay } from "@/app/lib/spanish";
@@ -19,6 +20,9 @@ function serverDay() {
 }
 
 export default async function DailyPage() {
+  // Render per request — today's date, ticks, and the feed pool all move,
+  // and CI builds have no database.
+  await connection();
   const day = serverDay();
   const [article, ticks] = await Promise.all([
     articleOfTheDay(day).catch(() => null),
