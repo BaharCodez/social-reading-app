@@ -24,6 +24,7 @@ export default function PostEditor({
   const [content, setContent] = useState(initial?.content ?? "");
   const [showPreview, setShowPreview] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const imageRef = useRef<HTMLInputElement>(null);
@@ -60,18 +61,59 @@ export default function PostEditor({
     });
   }
 
+  /* Fence the selection (or a placeholder) into its own code block. */
+  function codeBlock() {
+    const el = bodyRef.current;
+    if (!el) return;
+    const { selectionStart: a, selectionEnd: b, value } = el;
+    const selected = value.slice(a, b) || "code";
+    const atLineStart = a === 0 || value[a - 1] === "\n";
+    const before = (atLineStart ? "" : "\n\n") + "```\n";
+    const next =
+      value.slice(0, a) + before + selected + "\n```\n\n" + value.slice(b);
+    setContent(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(
+        a + before.length,
+        a + before.length + selected.length,
+      );
+    });
+  }
+
   async function addImage(file: File) {
     setError(null);
-    const form = new FormData();
-    form.append("file", file);
-    const res = await fetch("/api/images", { method: "POST", body: form });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Couldn't upload that image.");
-      return;
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/images", { method: "POST", body: form });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Couldn't upload that image.");
+        return;
+      }
+      const { url } = (await res.json()) as { url: string };
+      block(`![](${url})\n\n`);
+    } catch {
+      setError("Couldn't upload that image.");
+    } finally {
+      setUploading(false);
     }
-    const { url } = (await res.json()) as { url: string };
-    block(`![](${url})\n\n`);
+  }
+
+  /* Pasted or dropped images upload like the + image button. Copied images
+     (as opposed to copied files) only show up in .items, not .files. */
+  function imageFromDataTransfer(dt: DataTransfer | null) {
+    if (!dt) return false;
+    const file =
+      Array.from(dt.items)
+        .filter((i) => i.kind === "file" && i.type.startsWith("image/"))
+        .map((i) => i.getAsFile())
+        .find(Boolean) ??
+      Array.from(dt.files).find((f) => f.type.startsWith("image/"));
+    if (file) void addImage(file);
+    return Boolean(file);
   }
 
   async function save(published: boolean) {
@@ -142,6 +184,16 @@ export default function PostEditor({
         >
           I
         </button>
+        <button
+          type="button"
+          className={tool}
+          onClick={() => wrap("`", "`", "code")}
+        >
+          `x`
+        </button>
+        <button type="button" className={tool} onClick={codeBlock}>
+          code box
+        </button>
         <button type="button" className={tool} onClick={() => block("> ")}>
           &quot;
         </button>
@@ -186,11 +238,20 @@ export default function PostEditor({
           ref={bodyRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Write about what you're reading, building, wondering…"
+          onPaste={(e) => {
+            if (imageFromDataTransfer(e.clipboardData)) e.preventDefault();
+          }}
+          onDrop={(e) => {
+            if (imageFromDataTransfer(e.dataTransfer)) e.preventDefault();
+          }}
+          placeholder="Write about what you're reading, building, wondering… (paste or drop images right here)"
           className="text-ink placeholder:text-ink-soft/50 min-h-[50vh] w-full resize-y bg-transparent py-4 text-base leading-relaxed outline-none"
         />
       )}
 
+      {uploading && (
+        <p className="text-ink-soft font-mono text-xs">uploading image…</p>
+      )}
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="border-line flex items-center gap-3 border-t-2 pt-4">
