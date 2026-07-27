@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
+import { requireOwner } from "@/app/lib/session";
 import { postInputSchema } from "@/app/lib/validation";
 
 export async function GET(
@@ -17,6 +18,9 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   const { id } = await params;
   const body = await req.json().catch(() => null);
   const parsed = postInputSchema.safeParse(body);
@@ -50,6 +54,9 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   const { id } = await params;
   const deleted = await prisma.post.delete({ where: { id } }).catch(() => null);
   if (!deleted) return new NextResponse(null, { status: 404 });

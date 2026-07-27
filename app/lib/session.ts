@@ -1,4 +1,5 @@
 import "server-only";
+import { NextResponse } from "next/server";
 import { auth } from "@/app/lib/auth";
 import { prisma } from "@/app/lib/prisma";
 
@@ -29,4 +30,31 @@ export async function actorUserId(): Promise<string | null> {
     select: { id: true },
   });
   return oldest?.id ?? null;
+}
+
+// The owner: the account matching OWNER_EMAIL, or the oldest account when
+// that's unset. Anyone may look around the house; only she rearranges it.
+export async function isOwner(): Promise<boolean> {
+  const session = await auth();
+  const email = session?.user?.email?.toLowerCase();
+  if (!email) return false;
+
+  const ownerEmail = process.env.OWNER_EMAIL?.toLowerCase();
+  if (ownerEmail) return email === ownerEmail;
+
+  const oldest = await prisma.user.findFirst({
+    orderBy: { createdAt: "asc" },
+    select: { email: true },
+  });
+  return oldest?.email?.toLowerCase() === email;
+}
+
+// Route-handler guard for anything that changes the house: returns null for
+// the signed-in owner, otherwise the 401 response to send back.
+export async function requireOwner(): Promise<NextResponse | null> {
+  if (await isOwner()) return null;
+  return NextResponse.json(
+    { error: "Only the keeper of this house can change things — sign in." },
+    { status: 401 },
+  );
 }

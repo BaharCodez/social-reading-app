@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import { actorUserId } from "@/app/lib/session";
+import { actorUserId, requireOwner } from "@/app/lib/session";
 import { annotationInputSchema } from "@/app/lib/validation";
 
 // Everyone reading a book sees everyone's notes — visitors included; only
@@ -45,6 +45,8 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const denied = await requireOwner();
+  if (denied) return denied;
   const userId = await actorUserId();
   if (!userId) return new NextResponse(null, { status: 401 });
 

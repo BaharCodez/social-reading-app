@@ -308,6 +308,17 @@ body {
   margin: 2rem auto;
   width: 40%;
 }
+/* Editor-only bits: placeholder text and the selected-image outline. */
+.article p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: color-mix(in srgb, var(--ink-soft) 50%, transparent);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+.article .ProseMirror-selectednode {
+  outline: 3px solid var(--accent);
+}
 
 /* Fade to black when walking through a door. */
 @keyframes room-fade-in {

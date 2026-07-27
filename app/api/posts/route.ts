@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
+import { requireOwner } from "@/app/lib/session";
 import { postInputSchema } from "@/app/lib/validation";
 
 // Everything is public — drafts too; they're just not "published" yet.
@@ -12,6 +13,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   const body = await req.json().catch(() => null);
   const parsed = postInputSchema.safeParse(body);
   if (!parsed.success) {

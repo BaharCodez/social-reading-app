@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
+import { requireOwner } from "@/app/lib/session";
 import { frameInputSchema } from "@/app/lib/validation";
 
 // Rewrite a frame's plaque.
@@ -7,6 +8,9 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   const { id } = await params;
   const body = await req.json().catch(() => null);
   const parsed = frameInputSchema.partial().safeParse(body);
@@ -38,6 +42,9 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   const { id } = await params;
   const deleted = await prisma.frame
     .delete({ where: { id } })
