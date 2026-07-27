@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Fraunces, Pixelify_Sans } from "next/font/google";
 import "./globals.css";
 import Providers from "./components/Providers";
+import IntruderAlarm from "./components/IntruderAlarm";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -72,6 +73,7 @@ export default function RootLayout({
       </head>
       <body className="flex min-h-full flex-col">
         <Providers>{children}</Providers>
+        <IntruderAlarm />
       </body>
     </html>
   );

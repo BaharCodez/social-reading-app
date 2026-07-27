@@ -308,6 +308,45 @@ body {
   margin: 2rem auto;
   width: 40%;
 }
+/* Security system: red strobe + blinking banner while the alarm is tripped. */
+@keyframes alarm-strobe {
+  0%,
+  100% {
+    background: transparent;
+    box-shadow: none;
+  }
+  50% {
+    background: color-mix(in srgb, #ef4444 22%, transparent);
+    box-shadow: inset 0 0 12rem 2rem
+      color-mix(in srgb, #dc2626 55%, transparent);
+  }
+}
+@keyframes alarm-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.35;
+  }
+}
+.intruder-alarm {
+  animation: alarm-strobe 0.5s steps(1) infinite;
+}
+.intruder-banner {
+  animation: alarm-blink 0.5s steps(1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .intruder-alarm {
+    animation: none;
+    background: color-mix(in srgb, #ef4444 18%, transparent);
+  }
+  .intruder-banner {
+    animation: none;
+  }
+}
+
 /* Editor-only bits: placeholder text and the selected-image outline. */
 .article p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
