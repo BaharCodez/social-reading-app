@@ -1,8 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { marked } from "marked";
+import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Image from "@tiptap/extension-image";
+import { Placeholder } from "@tiptap/extensions";
+import { Markdown } from "@tiptap/markdown";
 
 interface PostDraft {
   id?: string;
@@ -11,9 +15,31 @@ interface PostDraft {
   published: boolean;
 }
 
-/* A calm markdown editor: big title, a toolbar that inserts markdown around
-   your selection, image upload straight into the text, and a live preview
-   rendered exactly like the published article. */
+/* The stock Image extension doesn't speak markdown; teach it ![alt](src) so
+   posts keep round-tripping through the database as plain markdown. */
+const MarkdownImage = Image.extend({
+  markdownTokenName: "image",
+  parseMarkdown: (token, helpers) =>
+    helpers.createNode(
+      "image",
+      {
+        src: token.href,
+        alt: token.text || null,
+        title: token.title || null,
+      },
+      [],
+    ),
+  renderMarkdown: (node) => {
+    const src = node.attrs?.src ?? "";
+    const alt = node.attrs?.alt ?? "";
+    const title = node.attrs?.title;
+    return title ? `![${alt}](${src} "${title}")` : `![${alt}](${src})`;
+  },
+}).configure({ inline: true });
+
+/* A calm writing room: big title, a toolbar, and the article itself is the
+   editor — what you type looks like the published page (markdown stays the
+   storage format underneath). Saves itself as you write. */
 export default function PostEditor({
   initial,
 }: {
@@ -21,67 +47,196 @@ export default function PostEditor({
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(initial?.title ?? "");
-  const [content, setContent] = useState(initial?.content ?? "");
-  const [showPreview, setShowPreview] = useState(false);
+  const [postId, setPostId] = useState(initial?.id);
+  const [published, setPublished] = useState(initial?.published ?? false);
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
+    "idle",
+  );
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const [showMd, setShowMd] = useState(false);
+  const [mdText, setMdText] = useState("");
   const imageRef = useRef<HTMLInputElement>(null);
 
-  /* Wrap the current selection (or drop in a placeholder) and refocus. */
-  function wrap(before: string, after = "", placeholder = "text") {
-    const el = bodyRef.current;
-    if (!el) return;
-    const { selectionStart: a, selectionEnd: b, value } = el;
-    const selected = value.slice(a, b) || placeholder;
-    const next = value.slice(0, a) + before + selected + after + value.slice(b);
-    setContent(next);
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(
-        a + before.length,
-        a + before.length + selected.length,
+  /* Latest-value refs so debounced saves never read stale state. */
+  const titleRef = useRef(title);
+  const idRef = useRef(postId);
+  const publishedRef = useRef(published);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const queueRef = useRef<Promise<unknown>>(Promise.resolve());
+  useEffect(() => {
+    titleRef.current = title;
+    idRef.current = postId;
+    publishedRef.current = published;
+  }, [title, postId, published]);
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit.configure({ link: { openOnClick: false } }),
+      MarkdownImage,
+      Placeholder.configure({
+        placeholder:
+          "Write about what you're reading, building, wondering… (paste or drop images right here)",
+      }),
+      Markdown.configure({ markedOptions: { breaks: true } }),
+    ],
+    contentType: "markdown",
+    content: initial?.content ?? "",
+    editorProps: {
+      attributes: { class: "article min-h-[50vh] w-full py-4 outline-none" },
+      handlePaste: (_view, event) => {
+        const file = imageFile(event.clipboardData);
+        if (!file) return false;
+        event.preventDefault();
+        void addImage(file);
+        return true;
+      },
+      handleDrop: (view, event, _slice, moved) => {
+        if (moved) return false;
+        const file = imageFile(event.dataTransfer);
+        if (!file) return false;
+        event.preventDefault();
+        const pos = view.posAtCoords({
+          left: event.clientX,
+          top: event.clientY,
+        })?.pos;
+        void addImage(file, pos);
+        return true;
+      },
+    },
+    onUpdate: () => schedule(),
+  });
+  const editorRef = useRef(editor);
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
+
+  const active = useEditorState({
+    editor,
+    selector: ({ editor: ed }) =>
+      ed
+        ? {
+            h2: ed.isActive("heading", { level: 2 }),
+            bold: ed.isActive("bold"),
+            italic: ed.isActive("italic"),
+            code: ed.isActive("code"),
+            codeBlock: ed.isActive("codeBlock"),
+            quote: ed.isActive("blockquote"),
+            list: ed.isActive("bulletList"),
+            link: ed.isActive("link"),
+          }
+        : null,
+  });
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    [],
+  );
+
+  /* Autosave: settle for a moment, then persist. Saves are queued so a slow
+     first POST can't race a second one into creating a duplicate post. */
+  function schedule() {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => void persist(), 1200);
+  }
+
+  function persist(publish?: boolean): Promise<string | null> {
+    const job = queueRef.current.then(() => doSave(publish));
+    queueRef.current = job.catch(() => undefined);
+    return job;
+  }
+
+  async function doSave(publish?: boolean): Promise<string | null> {
+    const t = titleRef.current.trim();
+    const ed = editorRef.current;
+    if (!t || !ed) return null; // nothing to save yet — needs a title
+    setStatus("saving");
+    try {
+      const res = await fetch(
+        idRef.current ? `/api/posts/${idRef.current}` : "/api/posts",
+        {
+          method: idRef.current ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: t,
+            content: ed.getMarkdown(),
+            published: publish ?? publishedRef.current,
+          }),
+        },
       );
-    });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Couldn't save.");
+        setStatus("error");
+        return null;
+      }
+      const data = (await res.json()) as { id?: string };
+      if (!idRef.current && data.id) {
+        idRef.current = data.id;
+        setPostId(data.id);
+        // Reloading mid-write should resume this draft, not start another.
+        window.history.replaceState(null, "", `/notes/write?id=${data.id}`);
+      }
+      if (publish !== undefined) {
+        publishedRef.current = publish;
+        setPublished(publish);
+      }
+      setError(null);
+      setStatus("saved");
+      return idRef.current ?? null;
+    } catch {
+      setStatus("error");
+      return null;
+    }
   }
 
-  /* Insert a block (heading, quote, divider) at the start of a fresh line. */
-  function block(prefix: string) {
-    const el = bodyRef.current;
-    if (!el) return;
-    const { selectionStart: a, value } = el;
-    const atLineStart = a === 0 || value[a - 1] === "\n";
-    const insert = (atLineStart ? "" : "\n\n") + prefix;
-    const next = value.slice(0, a) + insert + value.slice(a);
-    setContent(next);
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(a + insert.length, a + insert.length);
-    });
+  /* Explicit publish / unpublish, then leave the writing room. */
+  async function saveAndGo(publish: boolean) {
+    if (!titleRef.current.trim()) {
+      setError("Give it a title first.");
+      return;
+    }
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setBusy(true);
+    try {
+      const id = await persist(publish);
+      if (!id) return;
+      router.push(publish ? `/notes/${id}` : "/notes");
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
   }
 
-  /* Fence the selection (or a placeholder) into its own code block. */
-  function codeBlock() {
-    const el = bodyRef.current;
-    if (!el) return;
-    const { selectionStart: a, selectionEnd: b, value } = el;
-    const selected = value.slice(a, b) || "code";
-    const atLineStart = a === 0 || value[a - 1] === "\n";
-    const before = (atLineStart ? "" : "\n\n") + "```\n";
-    const next =
-      value.slice(0, a) + before + selected + "\n```\n\n" + value.slice(b);
-    setContent(next);
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(
-        a + before.length,
-        a + before.length + selected.length,
-      );
-    });
+  async function remove() {
+    if (!window.confirm("Tear this page out for good?")) return;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (idRef.current) {
+      await fetch(`/api/posts/${idRef.current}`, { method: "DELETE" });
+    }
+    router.push("/notes");
+    router.refresh();
   }
 
-  async function addImage(file: File) {
+  /* Pasted or dropped images upload like the + image button. Copied images
+     (as opposed to copied files) only show up in .items, not .files. */
+  function imageFile(dt: DataTransfer | null) {
+    if (!dt) return null;
+    return (
+      Array.from(dt.items)
+        .filter((i) => i.kind === "file" && i.type.startsWith("image/"))
+        .map((i) => i.getAsFile())
+        .find(Boolean) ??
+      Array.from(dt.files).find((f) => f.type.startsWith("image/")) ??
+      null
+    );
+  }
+
+  async function addImage(file: File, pos?: number) {
     setError(null);
     setUploading(true);
     try {
@@ -94,7 +249,14 @@ export default function PostEditor({
         return;
       }
       const { url } = (await res.json()) as { url: string };
-      block(`![](${url})\n\n`);
+      const ed = editorRef.current;
+      if (!ed) return;
+      const image = { type: "image", attrs: { src: url } };
+      if (pos != null) {
+        ed.chain().focus().insertContentAt(pos, image).run();
+      } else {
+        ed.chain().focus().insertContent(image).run();
+      }
     } catch {
       setError("Couldn't upload that image.");
     } finally {
@@ -102,64 +264,53 @@ export default function PostEditor({
     }
   }
 
-  /* Pasted or dropped images upload like the + image button. Copied images
-     (as opposed to copied files) only show up in .items, not .files. */
-  function imageFromDataTransfer(dt: DataTransfer | null) {
-    if (!dt) return false;
-    const file =
-      Array.from(dt.items)
-        .filter((i) => i.kind === "file" && i.type.startsWith("image/"))
-        .map((i) => i.getAsFile())
-        .find(Boolean) ??
-      Array.from(dt.files).find((f) => f.type.startsWith("image/"));
-    if (file) void addImage(file);
-    return Boolean(file);
-  }
-
-  async function save(published: boolean) {
-    if (!title.trim()) {
-      setError("Give it a title first.");
+  function setLink() {
+    const ed = editorRef.current;
+    if (!ed) return;
+    const prev = ed.getAttributes("link").href as string | undefined;
+    const url = window.prompt("Link to…", prev ?? "https://");
+    if (url === null) return;
+    if (!url.trim() || url.trim() === "https://") {
+      ed.chain().focus().extendMarkRange("link").unsetLink().run();
       return;
     }
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch(
-        initial ? `/api/posts/${initial.id}` : "/api/posts",
-        {
-          method: initial ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title, content, published }),
-        },
-      );
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Couldn't save.");
-        return;
-      }
-      const { id } = (await res.json()) as { id: string };
-      router.push(published ? `/notes/${id ?? initial?.id}` : "/notes");
-      router.refresh();
-    } finally {
-      setBusy(false);
-    }
+    ed.chain()
+      .focus()
+      .extendMarkRange("link")
+      .setLink({ href: url.trim() })
+      .run();
   }
 
-  async function remove() {
-    if (!initial || !window.confirm("Tear this page out for good?")) return;
-    await fetch(`/api/posts/${initial.id}`, { method: "DELETE" });
-    router.push("/notes");
-    router.refresh();
+  /* The raw-markdown escape hatch. The editor stays mounted (just hidden) and
+     is kept in sync on every keystroke, so autosave always reads the editor. */
+  function toggleMd() {
+    const ed = editorRef.current;
+    if (!ed) return;
+    if (!showMd) setMdText(ed.getMarkdown());
+    setShowMd((s) => !s);
+  }
+
+  function onMdChange(value: string) {
+    setMdText(value);
+    editorRef.current?.commands.setContent(value, {
+      contentType: "markdown",
+      emitUpdate: false,
+    });
+    schedule();
   }
 
   const tool =
-    "border-line text-ink-soft hover:text-ink hover:border-accent rounded border-2 px-2 py-0.5 font-mono text-xs transition-colors";
+    "border-line text-ink-soft hover:text-ink hover:border-accent rounded border-2 px-2 py-0.5 font-mono text-xs transition-colors disabled:pointer-events-none disabled:opacity-30";
+  const on = " text-accent border-accent";
 
   return (
     <div className="mx-auto w-full max-w-3xl flex-1 px-4 pb-16 sm:px-6">
       <input
         value={title}
-        onChange={(e) => setTitle(e.target.value)}
+        onChange={(e) => {
+          setTitle(e.target.value);
+          schedule();
+        }}
         placeholder="Title…"
         autoFocus={!initial}
         className="text-ink placeholder:text-ink-soft/50 w-full bg-transparent font-serif text-4xl font-bold tracking-tight outline-none"
@@ -167,85 +318,112 @@ export default function PostEditor({
 
       {/* toolbar */}
       <div className="border-line mt-4 flex flex-wrap items-center gap-2 border-y-2 py-2">
-        <button type="button" className={tool} onClick={() => block("## ")}>
+        <button
+          type="button"
+          disabled={showMd}
+          className={tool + (active?.h2 ? on : "")}
+          onClick={() =>
+            editor?.chain().focus().toggleHeading({ level: 2 }).run()
+          }
+        >
           H2
         </button>
         <button
           type="button"
-          className={`${tool} font-bold`}
-          onClick={() => wrap("**", "**")}
+          disabled={showMd}
+          className={`${tool} font-bold` + (active?.bold ? on : "")}
+          onClick={() => editor?.chain().focus().toggleBold().run()}
         >
           B
         </button>
         <button
           type="button"
-          className={`${tool} italic`}
-          onClick={() => wrap("*", "*")}
+          disabled={showMd}
+          className={`${tool} italic` + (active?.italic ? on : "")}
+          onClick={() => editor?.chain().focus().toggleItalic().run()}
         >
           I
         </button>
         <button
           type="button"
-          className={tool}
-          onClick={() => wrap("`", "`", "code")}
+          disabled={showMd}
+          className={tool + (active?.code ? on : "")}
+          onClick={() => editor?.chain().focus().toggleCode().run()}
         >
           `x`
         </button>
-        <button type="button" className={tool} onClick={codeBlock}>
+        <button
+          type="button"
+          disabled={showMd}
+          className={tool + (active?.codeBlock ? on : "")}
+          onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
+        >
           code box
         </button>
-        <button type="button" className={tool} onClick={() => block("> ")}>
+        <button
+          type="button"
+          disabled={showMd}
+          className={tool + (active?.quote ? on : "")}
+          onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+        >
           &quot;
         </button>
-        <button type="button" className={tool} onClick={() => block("- ")}>
+        <button
+          type="button"
+          disabled={showMd}
+          className={tool + (active?.list ? on : "")}
+          onClick={() => editor?.chain().focus().toggleBulletList().run()}
+        >
           list
         </button>
         <button
           type="button"
-          className={tool}
-          onClick={() => wrap("[", "](https://)", "link text")}
+          disabled={showMd}
+          className={tool + (active?.link ? on : "")}
+          onClick={setLink}
         >
           link
         </button>
-        <button type="button" className={tool} onClick={() => block("---\n\n")}>
+        <button
+          type="button"
+          disabled={showMd}
+          className={tool}
+          onClick={() => editor?.chain().focus().setHorizontalRule().run()}
+        >
           ⁂
         </button>
         <button
           type="button"
+          disabled={showMd}
           className={tool}
           onClick={() => imageRef.current?.click()}
         >
           + image
         </button>
+        <span
+          className={`ml-auto font-mono text-xs ${status === "error" ? "text-red-500" : "text-ink-soft"}`}
+        >
+          {status === "saving" && "saving…"}
+          {status === "saved" && "saved ✓"}
+          {status === "error" && "not saved!"}
+        </span>
         <button
           type="button"
-          onClick={() => setShowPreview((p) => !p)}
-          className={`${tool} ml-auto ${showPreview ? "text-accent border-accent" : ""}`}
+          onClick={toggleMd}
+          className={tool + (showMd ? on : "")}
         >
-          {showPreview ? "✎ write" : "👁 preview"}
+          {showMd ? "✎ rich" : "{} md"}
         </button>
       </div>
 
-      {showPreview ? (
-        <div
-          className="article min-h-[50vh] py-4"
-          dangerouslySetInnerHTML={{
-            __html: marked.parse(content, { async: false, breaks: true }),
-          }}
-        />
-      ) : (
+      <div className={showMd ? "hidden" : undefined}>
+        <EditorContent editor={editor} />
+      </div>
+      {showMd && (
         <textarea
-          ref={bodyRef}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          onPaste={(e) => {
-            if (imageFromDataTransfer(e.clipboardData)) e.preventDefault();
-          }}
-          onDrop={(e) => {
-            if (imageFromDataTransfer(e.dataTransfer)) e.preventDefault();
-          }}
-          placeholder="Write about what you're reading, building, wondering… (paste or drop images right here)"
-          className="text-ink placeholder:text-ink-soft/50 min-h-[50vh] w-full resize-y bg-transparent py-4 text-base leading-relaxed outline-none"
+          value={mdText}
+          onChange={(e) => onMdChange(e.target.value)}
+          className="text-ink min-h-[50vh] w-full resize-y bg-transparent py-4 font-mono text-sm leading-relaxed outline-none"
         />
       )}
 
@@ -258,7 +436,7 @@ export default function PostEditor({
         <button
           type="button"
           disabled={busy}
-          onClick={() => save(true)}
+          onClick={() => saveAndGo(true)}
           className="bg-accent text-accent-ink font-pixel rounded-full px-5 py-2 text-sm hover:opacity-90 disabled:opacity-50"
         >
           {busy ? "saving…" : "publish"}
@@ -266,12 +444,12 @@ export default function PostEditor({
         <button
           type="button"
           disabled={busy}
-          onClick={() => save(false)}
+          onClick={() => saveAndGo(false)}
           className="border-line text-ink-soft hover:text-ink font-pixel rounded-full border-2 px-4 py-2 text-sm"
         >
           save draft
         </button>
-        {initial && (
+        {(initial || postId) && (
           <button
             type="button"
             onClick={remove}
