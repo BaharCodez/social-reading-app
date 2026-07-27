@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import { actorUserId } from "@/app/lib/session";
+import { actorUserId, requireOwner } from "@/app/lib/session";
 
 // One shared library, no sign-in needed: anonymous visitors act as the
 // site owner, so `mine` lights up their books and the delete buttons.
@@ -37,6 +37,8 @@ export async function GET() {
 
 // Upload a new EPUB (multipart form: file, title, author, coverDataUrl).
 export async function POST(req: Request) {
+  const denied = await requireOwner();
+  if (denied) return denied;
   const userId = await actorUserId();
   if (!userId) return new NextResponse(null, { status: 401 });
 

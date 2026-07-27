@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import { actorUserId } from "@/app/lib/session";
+import { actorUserId, requireOwner } from "@/app/lib/session";
 
 // Stream the raw EPUB. The shelf is public, so anyone may open a book.
 export async function GET(
@@ -28,6 +28,8 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const denied = await requireOwner();
+  if (denied) return denied;
   const userId = await actorUserId();
   if (!userId) return new NextResponse(null, { status: 401 });
 

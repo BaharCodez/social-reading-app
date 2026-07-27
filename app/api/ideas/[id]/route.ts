@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
+import { requireOwner } from "@/app/lib/session";
 
 // Toggle a note done/undone (or reword it).
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   const { id } = await params;
   const body = await req.json().catch(() => null);
   const data: { done?: boolean; text?: string } = {};
@@ -25,6 +29,9 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   const { id } = await params;
   const deleted = await prisma.idea.delete({ where: { id } }).catch(() => null);
   if (!deleted) return new NextResponse(null, { status: 404 });

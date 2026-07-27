@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
+import { requireOwner } from "@/app/lib/session";
 
 const MAX_BYTES = 4 * 1024 * 1024; // keep under serverless body limits
 
 // Upload an image for a post (multipart form: file). Returns its URL.
 export async function POST(req: Request) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   const form = await req.formData();
   const file = form.get("file");
   if (!(file instanceof Blob) || !file.type.startsWith("image/")) {

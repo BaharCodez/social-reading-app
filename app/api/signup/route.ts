@@ -4,6 +4,16 @@ import { prisma } from "@/app/lib/prisma";
 import { signupSchema } from "@/app/lib/validation";
 
 export async function POST(req: Request) {
+  // The house hands out exactly one key: signup only works on a fresh
+  // database (bootstrapping the owner account), then it's closed.
+  const anyone = await prisma.user.findFirst({ select: { id: true } });
+  if (anyone) {
+    return NextResponse.json(
+      { error: "This house isn't handing out new keys." },
+      { status: 403 },
+    );
+  }
+
   const body = await req.json().catch(() => null);
   const parsed = signupSchema.safeParse(body);
   if (!parsed.success) {

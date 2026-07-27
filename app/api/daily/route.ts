@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
+import { requireOwner } from "@/app/lib/session";
 import { dailyTickSchema } from "@/app/lib/validation";
 
 // The streak board is public, like the rest of the house.
@@ -14,6 +15,9 @@ export async function GET() {
 
 // Tick off today's habit. Idempotent — ticking twice keeps one row.
 export async function POST(req: Request) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   const body = await req.json().catch(() => null);
   const parsed = dailyTickSchema.safeParse(body);
   if (!parsed.success) {

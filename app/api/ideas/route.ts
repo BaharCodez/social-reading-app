@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
+import { requireOwner } from "@/app/lib/session";
 import { ideaInputSchema } from "@/app/lib/validation";
 
 // The hobby board is wide open — look, pin, solve.
@@ -11,6 +12,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   const body = await req.json().catch(() => null);
   const parsed = ideaInputSchema.safeParse(body);
   if (!parsed.success) {
