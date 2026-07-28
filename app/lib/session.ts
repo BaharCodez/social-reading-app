@@ -9,6 +9,15 @@ export async function currentUserId(): Promise<string | null> {
   return session?.user?.id ?? null;
 }
 
+// The owner email(s) from OWNER_EMAIL — a comma-separated list, so more than
+// one account (e.g. two of Bahar's Google logins) can be the keeper.
+function ownerEmails(): string[] {
+  return (process.env.OWNER_EMAIL ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 // Who a write belongs to: the signed-in user if there is one, otherwise the
 // site owner. The house needs no sign-in — anonymous writes simply belong
 // to the owner (OWNER_EMAIL in .env, falling back to the oldest account).
@@ -16,10 +25,11 @@ export async function actorUserId(): Promise<string | null> {
   const signedIn = await currentUserId();
   if (signedIn) return signedIn;
 
-  const ownerEmail = process.env.OWNER_EMAIL;
-  if (ownerEmail) {
-    const owner = await prisma.user.findUnique({
-      where: { email: ownerEmail },
+  const emails = ownerEmails();
+  if (emails.length) {
+    const owner = await prisma.user.findFirst({
+      where: { email: { in: emails } },
+      orderBy: { createdAt: "asc" },
       select: { id: true },
     });
     if (owner) return owner.id;
@@ -39,8 +49,8 @@ export async function isOwner(): Promise<boolean> {
   const email = session?.user?.email?.toLowerCase();
   if (!email) return false;
 
-  const ownerEmail = process.env.OWNER_EMAIL?.toLowerCase();
-  if (ownerEmail) return email === ownerEmail;
+  const emails = ownerEmails();
+  if (emails.length) return emails.includes(email);
 
   const oldest = await prisma.user.findFirst({
     orderBy: { createdAt: "asc" },

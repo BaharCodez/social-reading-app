@@ -71,7 +71,21 @@ export default function AuthForm({ mode }: { mode: Mode }) {
           The study is private — sign in to open the books.
         </p>
 
-        <form onSubmit={onSubmit} className="mt-8 space-y-3">
+        <button
+          type="button"
+          onClick={() => signIn("google", { callbackUrl: "/" })}
+          className="border-line text-ink hover:bg-ink/5 mt-8 flex w-full items-center justify-center gap-2 rounded-lg border bg-transparent px-4 py-2.5 text-sm font-medium"
+        >
+          Continue with Google
+        </button>
+
+        <div className="text-ink-soft my-6 flex items-center gap-3 text-xs">
+          <span className="bg-line h-px flex-1" />
+          or
+          <span className="bg-line h-px flex-1" />
+        </div>
+
+        <form onSubmit={onSubmit} className="space-y-3">
           {isSignup && (
             <input
               type="text"
