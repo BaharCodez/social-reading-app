@@ -146,6 +146,8 @@ export default function DailyRoom({
   const [linkTitle, setLinkTitle] = useState("");
   const [linkErr, setLinkErr] = useState<string | null>(null);
   const [addingLink, setAddingLink] = useState(false);
+  // Surfaced when a shelf write bounces (usually: not signed in as owner).
+  const [shelfNote, setShelfNote] = useState<string | null>(null);
 
   // Add a bookmark; on success prepend it to the shelf. Returns ok/reason.
   async function saveBookmark(input: {
@@ -170,12 +172,14 @@ export default function DailyRoom({
   async function saveArticle() {
     if (!article || savingArticle || shelved.has(article.url)) return;
     setSavingArticle(true);
+    setShelfNote(null);
     try {
-      await saveBookmark({
+      const result = await saveBookmark({
         url: article.url,
         title: article.title,
         source: article.source,
       });
+      if (!result.ok) setShelfNote(result.error);
     } finally {
       setSavingArticle(false);
     }
@@ -217,6 +221,7 @@ export default function DailyRoom({
       setShelf((s) =>
         s.map((x) => (x.id === b.id ? { ...x, favorite: b.favorite } : x)),
       );
+      setShelfNote("Sign in as the owner to change the shelf.");
     }
   }
 
@@ -224,7 +229,10 @@ export default function DailyRoom({
     const prev = shelf;
     setShelf((s) => s.filter((x) => x.id !== b.id));
     const res = await fetch(`/api/bookmarks/${b.id}`, { method: "DELETE" });
-    if (!res.ok) setShelf(prev);
+    if (!res.ok) {
+      setShelf(prev);
+      setShelfNote("Sign in as the owner to change the shelf.");
+    }
   }
 
   function bookmarkRow(b: Bookmark) {
@@ -465,6 +473,9 @@ export default function DailyRoom({
         <p className="text-ink-soft mt-1 text-xs">
           reads worth keeping — star the best into the pile.
         </p>
+        {shelfNote && (
+          <p className="text-accent-2 mt-2 text-xs font-medium">{shelfNote}</p>
+        )}
 
         <form onSubmit={addLink} className="mt-4 space-y-2">
           <input
