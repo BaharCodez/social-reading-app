@@ -46,7 +46,18 @@ export async function actorUserId(): Promise<string | null> {
 // that's unset. Anyone may look around the house; only she rearranges it.
 export async function isOwner(): Promise<boolean> {
   const session = await auth();
-  const email = session?.user?.email?.toLowerCase();
+  if (!session?.user) return false;
+
+  // The JWT session can arrive without the email; fall back to the user id
+  // (always set) and look the email up, so the owner check never misses.
+  let email = session.user.email?.toLowerCase() ?? null;
+  if (!email && session.user.id) {
+    const u = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { email: true },
+    });
+    email = u?.email?.toLowerCase() ?? null;
+  }
   if (!email) return false;
 
   const emails = ownerEmails();

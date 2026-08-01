@@ -67,7 +67,7 @@ export default async function Den({
           a cozy corner for books, notes &amp; blinking lights
         </p>
         <p className="font-pixel text-ink-soft/80 mt-2 text-xs">
-          walk with ← → (or tap the floor) · press E at a door to enter
+          walk with ← → (or hold the floor) · press E at a door to enter
         </p>
       </div>
 
