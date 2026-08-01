@@ -319,7 +319,8 @@ export default function DenGame({ frames = [] }: { frames?: Frame[] }) {
   const [openFrameId, setOpenFrameId] = useState<string | null>(null);
 
   const keys = useRef(new Set<string>());
-  const target = useRef<number | null>(null);
+  // While a finger/mouse is held on the floor: -1 left, +1 right, 0 released.
+  const holdDir = useRef(0);
   // The walk loop owns the position; `playerX` state mirrors it for render.
   const pos = useRef(90);
   // Jump state: height above the floor and vertical speed.
@@ -406,7 +407,7 @@ export default function DenGame({ frames = [] }: { frames?: Frame[] }) {
       if (["arrowleft", "arrowright", "a", "d"].includes(k)) {
         e.preventDefault();
         keys.current.add(k);
-        target.current = null;
+        holdDir.current = 0;
       } else if (k === " " || k === "arrowup" || k === "w") {
         e.preventDefault();
         // Jump — but only off the ground, this isn't Flappy Gardener.
@@ -443,11 +444,8 @@ export default function DenGame({ frames = [] }: { frames?: Frame[] }) {
       if (keys.current.has("arrowleft") || keys.current.has("a")) dir -= 1;
       if (keys.current.has("arrowright") || keys.current.has("d")) dir += 1;
 
-      if (dir === 0 && target.current !== null) {
-        const gap = target.current - pos.current;
-        if (Math.abs(gap) < 6) target.current = null;
-        else dir = gap > 0 ? 1 : -1;
-      }
+      // Hold the floor to walk; let go to stop.
+      if (dir === 0) dir = holdDir.current;
 
       if (dir !== 0) {
         pos.current = Math.max(
@@ -485,20 +483,39 @@ export default function DenGame({ frames = [] }: { frames?: Frame[] }) {
     ? Math.max(0, Math.min(playerX - stageW / 2, worldW - stageW))
     : 0;
 
-  // Tap a side of the screen to send the gardener that way — he walks to
-  // that end of the room and stops cleanly at the edge. Uses live
-  // measurements (not possibly-stale render state) so the direction is right.
-  const onStageTap = (e: React.PointerEvent) => {
-    setOpenFrameId(null);
+  // Which way to walk for a press at this x: toward the side you're touching,
+  // relative to where the gardener stands. Live measurements (not stale render
+  // state) so the direction is right. A small deadzone under his feet holds
+  // the current direction instead of flip-flopping.
+  const dirFromPointer = (e: React.PointerEvent) => {
     const el = stageRef.current;
-    if (!el) return;
+    if (!el) return 0;
     const rect = el.getBoundingClientRect();
     const w = el.clientWidth;
     const wWorld = WORLD_W * scaleRef.current;
     const cam = Math.max(0, Math.min(pos.current - w / 2, wWorld - w));
     const tapWorld = e.clientX - rect.left + cam;
-    // Walk toward the tapped side, all the way to that end of the room.
-    target.current = tapWorld >= pos.current ? wWorld - 50 : 50;
+    if (Math.abs(tapWorld - pos.current) < 12) return holdDir.current;
+    return tapWorld >= pos.current ? 1 : -1;
+  };
+
+  // Hold the floor to walk; lift to stop. Pointer capture keeps the release
+  // reliable even if the finger slides off the stage.
+  const onStageDown = (e: React.PointerEvent) => {
+    setOpenFrameId(null);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* capture unsupported — release still works via pointerup */
+    }
+    holdDir.current = dirFromPointer(e);
+  };
+  const onStageMove = (e: React.PointerEvent) => {
+    if (e.buttons === 0) return; // only steer while actually pressed
+    holdDir.current = dirFromPointer(e);
+  };
+  const onStageRelease = () => {
+    holdDir.current = 0;
   };
 
   const speak = (e: React.MouseEvent) => {
@@ -511,7 +528,10 @@ export default function DenGame({ frames = [] }: { frames?: Frame[] }) {
   return (
     <div
       ref={stageRef}
-      onPointerDown={onStageTap}
+      onPointerDown={onStageDown}
+      onPointerMove={onStageMove}
+      onPointerUp={onStageRelease}
+      onPointerCancel={onStageRelease}
       className="relative h-[380px] w-full touch-none overflow-hidden select-none"
     >
       {/* the world — slides under the camera */}
