@@ -144,6 +144,17 @@ model Frame {
   createdAt DateTime @default(now())
 }
 
+// An article saved to the daily room's shelf. `favorite` lifts it into the
+// "special pile" — the reads worth keeping.
+model Bookmark {
+  id        String   @id @default(cuid())
+  url       String   @unique
+  title     String
+  source    String   @default("")
+  favorite  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
 // One tick per habit per day — powers the daily room's streak board.
 model DailyTick {
   id        String   @id @default(cuid())

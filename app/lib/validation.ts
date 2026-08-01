@@ -47,3 +47,11 @@ export const frameInputSchema = z.object({
   link: z.url("Links need to be full URLs.").nullish().or(z.literal("")),
   sort: z.number().int().default(0),
 });
+
+// An article shelved in the daily room.
+export const bookmarkInputSchema = z.object({
+  url: z.url("A bookmark needs a full URL."),
+  title: z.string().min(1, "Give it a title.").max(300).trim(),
+  source: z.string().max(120).trim().default(""),
+  favorite: z.boolean().default(false),
+});

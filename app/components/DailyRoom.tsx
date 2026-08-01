@@ -15,9 +15,15 @@ interface Tick {
   day: string;
 }
 
-const BOARD_DAYS = 56; // 8 weeks of little squares
+interface Bookmark {
+  id: string;
+  url: string;
+  title: string;
+  source: string;
+  favorite: boolean;
+}
 
-/* Local calendar date — streaks follow the visitor's clock, not the server's. */
+/* Local calendar date — follows the visitor's clock, not the server's. */
 function localDay(offset = 0) {
   const d = new Date();
   d.setDate(d.getDate() - offset);
@@ -76,15 +82,19 @@ export default function DailyRoom({
   scene,
   listening,
   ticks: initialTicks,
+  bookmarks: initialBookmarks,
   serverDay,
 }: {
   article: Article | null;
   scene: SpanishScene;
   listening: SpanishLine;
   ticks: Tick[];
+  bookmarks: Bookmark[];
   serverDay: string;
 }) {
   const [ticks, setTicks] = useState(initialTicks);
+  const [shelf, setShelf] = useState(initialBookmarks);
+  const [savingArticle, setSavingArticle] = useState(false);
   const [showEnglish, setShowEnglish] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -124,31 +134,144 @@ export default function DailyRoom({
     }
   }
 
-  /* Consecutive days ending today — or yesterday, if today isn't done yet. */
-  function streak(kind: string) {
-    let count = 0;
-    let offset = done.has(`${kind}:${today}`) ? 0 : 1;
-    while (done.has(`${kind}:${localDay(offset)}`)) {
-      count++;
-      offset++;
+  // The shelf, split into the special pile (starred) and the rest.
+  const shelved = useMemo(
+    () => new Set(shelf.map((b) => b.url)),
+    [shelf],
+  );
+  const pile = shelf.filter((b) => b.favorite);
+  const rest = shelf.filter((b) => !b.favorite);
+
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkTitle, setLinkTitle] = useState("");
+  const [linkErr, setLinkErr] = useState<string | null>(null);
+  const [addingLink, setAddingLink] = useState(false);
+
+  // Add a bookmark; on success prepend it to the shelf. Returns ok/reason.
+  async function saveBookmark(input: {
+    url: string;
+    title: string;
+    source?: string;
+  }) {
+    const res = await fetch("/api/bookmarks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return { ok: false as const, error: data.error ?? "Couldn't save that." };
     }
-    return count;
+    const saved: Bookmark = await res.json();
+    setShelf((s) => (s.some((b) => b.id === saved.id) ? s : [saved, ...s]));
+    return { ok: true as const };
+  }
+
+  async function saveArticle() {
+    if (!article || savingArticle || shelved.has(article.url)) return;
+    setSavingArticle(true);
+    try {
+      await saveBookmark({
+        url: article.url,
+        title: article.title,
+        source: article.source,
+      });
+    } finally {
+      setSavingArticle(false);
+    }
+  }
+
+  async function addLink(e: React.FormEvent) {
+    e.preventDefault();
+    if (addingLink) return;
+    setLinkErr(null);
+    setAddingLink(true);
+    try {
+      const result = await saveBookmark({
+        url: linkUrl.trim(),
+        title: linkTitle.trim() || linkUrl.trim(),
+      });
+      if (result.ok) {
+        setLinkUrl("");
+        setLinkTitle("");
+      } else {
+        setLinkErr(result.error);
+      }
+    } finally {
+      setAddingLink(false);
+    }
+  }
+
+  async function toggleFavorite(b: Bookmark) {
+    const next = !b.favorite;
+    setShelf((s) =>
+      s.map((x) => (x.id === b.id ? { ...x, favorite: next } : x)),
+    );
+    const res = await fetch(`/api/bookmarks/${b.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ favorite: next }),
+    });
+    if (!res.ok) {
+      // Roll back if the house said no.
+      setShelf((s) =>
+        s.map((x) => (x.id === b.id ? { ...x, favorite: b.favorite } : x)),
+      );
+    }
+  }
+
+  async function removeBookmark(b: Bookmark) {
+    const prev = shelf;
+    setShelf((s) => s.filter((x) => x.id !== b.id));
+    const res = await fetch(`/api/bookmarks/${b.id}`, { method: "DELETE" });
+    if (!res.ok) setShelf(prev);
+  }
+
+  function bookmarkRow(b: Bookmark) {
+    return (
+      <li
+        key={b.id}
+        className="border-line flex items-start gap-2 border-b py-2 last:border-0"
+      >
+        <button
+          type="button"
+          onClick={() => toggleFavorite(b)}
+          title={b.favorite ? "in the pile" : "add to the pile"}
+          className="text-accent shrink-0 pt-0.5 text-sm"
+        >
+          {b.favorite ? "★" : "☆"}
+        </button>
+        <div className="min-w-0 flex-1">
+          {b.source && (
+            <p className="text-accent-2 font-mono text-[10px] font-bold">
+              {b.source}
+            </p>
+          )}
+          <a
+            href={b.url}
+            target="_blank"
+            rel="noreferrer"
+            className="text-ink hover:text-accent block truncate text-sm underline-offset-4 hover:underline"
+          >
+            {b.title} ↗
+          </a>
+        </div>
+        <button
+          type="button"
+          onClick={() => removeBookmark(b)}
+          title="remove from the shelf"
+          className="text-ink-soft hover:text-ink shrink-0 text-sm"
+        >
+          ×
+        </button>
+      </li>
+    );
   }
 
   const articleDone = done.has(`article:${today}`);
+  const articleSaved = article ? shelved.has(article.url) : false;
   const spanishDone = done.has(`spanish:${today}`);
   const listeningDone = done.has(`listening:${today}`);
-  const articleStreak = streak("article");
-  const spanishStreak = streak("spanish");
-  const listeningStreak = streak("listening");
-
-  const board = Array.from({ length: BOARD_DAYS }, (_, i) => {
-    const day = localDay(BOARD_DAYS - 1 - i);
-    const count = ["article", "spanish", "listening"].filter((k) =>
-      done.has(`${k}:${day}`),
-    ).length;
-    return { day, count };
-  });
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 px-4 pb-12 sm:px-6">
@@ -170,18 +293,39 @@ export default function DailyRoom({
             >
               {article.title} ↗
             </a>
-            <button
-              type="button"
-              onClick={() => tick("article")}
-              disabled={articleDone || busy === "article"}
-              className={`font-pixel mt-4 rounded-full px-4 py-2 text-sm transition-opacity ${
-                articleDone
-                  ? "bg-accent/30 text-ink cursor-default"
-                  : "bg-accent text-accent-ink hover:opacity-90"
-              }`}
-            >
-              {articleDone ? "read ✓" : busy === "article" ? "…" : "I read it"}
-            </button>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => tick("article")}
+                disabled={articleDone || busy === "article"}
+                className={`font-pixel rounded-full px-4 py-2 text-sm transition-opacity ${
+                  articleDone
+                    ? "bg-accent/30 text-ink cursor-default"
+                    : "bg-accent text-accent-ink hover:opacity-90"
+                }`}
+              >
+                {articleDone ? "read ✓" : busy === "article" ? "…" : "I read it"}
+              </button>
+              <button
+                type="button"
+                onClick={saveArticle}
+                disabled={articleSaved || savingArticle}
+                title={
+                  articleSaved ? "already on the shelf" : "save to the shelf"
+                }
+                className={`font-pixel border-line rounded-full border px-4 py-2 text-sm transition-opacity ${
+                  articleSaved
+                    ? "text-ink-soft cursor-default"
+                    : "text-ink hover:bg-ink/5"
+                }`}
+              >
+                {articleSaved
+                  ? "★ shelved"
+                  : savingArticle
+                    ? "…"
+                    : "☆ save to shelf"}
+              </button>
+            </div>
           </>
         ) : (
           <p className="text-ink-soft mt-3 text-sm">
@@ -313,39 +457,67 @@ export default function DailyRoom({
         </button>
       </section>
 
-      {/* the streak board */}
+      {/* the shelf — articles worth keeping (a running dissertation pile) */}
       <section className="pixel-frame bg-surface p-4 sm:p-5">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-pixel text-ink-soft text-xs tracking-wider uppercase">
-            the streak board
-          </h2>
-          <p className="text-ink-soft font-mono text-xs">
-            📖 {articleStreak}d · 🗣️ {spanishStreak}d · 👂 {listeningStreak}d
-          </p>
-        </div>
-        <div className="mt-4 grid grid-flow-col grid-rows-7 justify-start gap-1">
-          {board.map(({ day, count }) => (
-            <div
-              key={day}
-              title={day}
-              className={`h-3.5 w-3.5 ${
-                count === 3
-                  ? "bg-accent"
-                  : count === 2
-                    ? "bg-accent/60"
-                    : count === 1
-                      ? "bg-accent-2"
-                      : "bg-ink/10"
-              } ${day === today ? "ring-ink/40 ring-2" : ""}`}
-            />
-          ))}
-        </div>
-        <p className="text-ink-soft mt-3 font-mono text-[10px]">
-          ░ nothing · <span className="text-accent-2">▒</span> one ·{" "}
-          <span className="text-accent/60">▓</span> two ·{" "}
-          <span className="text-accent">█</span> all three — eight weeks of
-          showing up
+        <h2 className="font-pixel text-ink-soft text-xs tracking-wider uppercase">
+          the shelf
+        </h2>
+        <p className="text-ink-soft mt-1 text-xs">
+          reads worth keeping — star the best into the pile.
         </p>
+
+        <form onSubmit={addLink} className="mt-4 space-y-2">
+          <input
+            type="url"
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            placeholder="https://… a link you found"
+            className="border-line text-ink focus:border-accent w-full rounded-lg border bg-transparent px-3 py-2 text-sm outline-none"
+          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={linkTitle}
+              onChange={(e) => setLinkTitle(e.target.value)}
+              placeholder="title (optional)"
+              className="border-line text-ink focus:border-accent min-w-0 flex-1 rounded-lg border bg-transparent px-3 py-2 text-sm outline-none"
+            />
+            <button
+              type="submit"
+              disabled={addingLink || !linkUrl.trim()}
+              className="font-pixel bg-accent text-accent-ink shrink-0 rounded-full px-4 py-2 text-sm hover:opacity-90 disabled:opacity-50"
+            >
+              {addingLink ? "…" : "add"}
+            </button>
+          </div>
+          {linkErr && (
+            <p className="text-sm text-red-600 dark:text-red-400">{linkErr}</p>
+          )}
+        </form>
+
+        {pile.length > 0 && (
+          <div className="mt-5">
+            <h3 className="font-pixel text-accent text-[11px] tracking-wider uppercase">
+              ★ the pile
+            </h3>
+            <ul className="mt-2">{pile.map(bookmarkRow)}</ul>
+          </div>
+        )}
+
+        <div className="mt-5">
+          <h3 className="font-pixel text-ink-soft text-[11px] tracking-wider uppercase">
+            on the shelf
+          </h3>
+          {rest.length > 0 ? (
+            <ul className="mt-2">{rest.map(bookmarkRow)}</ul>
+          ) : (
+            <p className="text-ink-soft mt-2 text-sm">
+              {shelf.length === 0
+                ? "Nothing shelved yet — save a read above."
+                : "Everything here is in the pile."}
+            </p>
+          )}
+        </div>
       </section>
     </div>
   );

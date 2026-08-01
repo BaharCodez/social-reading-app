@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { prisma } from "@/app/lib/prisma";
+import { auth } from "@/app/lib/auth";
 import ThemePicker from "./components/ThemePicker";
 import AmbientMusic from "./components/AmbientMusic";
 import DenGame from "./components/DenGame";
@@ -24,6 +25,9 @@ export default async function Den({
   // query below must never run during a database-less CI build).
   await connection();
 
+  const session = await auth();
+  const signedIn = !!session?.user;
+
   // The first few hallway frames get auto-hung on the den wall.
   const wallFrames = await prisma.frame.findMany({
     where: { kind: { not: "sandbox" } },
@@ -43,6 +47,12 @@ export default async function Den({
   return (
     <main className="flex flex-1 flex-col overflow-hidden">
       <header className="flex items-center justify-end gap-2 px-4 pt-3 sm:px-6">
+        <Link
+          href={signedIn ? "/study" : "/login"}
+          className="border-line text-ink hover:bg-ink/5 font-pixel mr-auto rounded-full border px-3 py-1.5 text-xs transition-colors"
+        >
+          {signedIn ? "you're in ✓" : "log in"}
+        </Link>
         <AmbientMusic />
         <ThemePicker />
       </header>

@@ -115,6 +115,11 @@ export default function AuthForm({ mode }: { mode: Mode }) {
             required
             className="border-line text-ink focus:border-accent w-full rounded-lg border bg-transparent px-3 py-2 text-sm outline-none"
           />
+          {!isSignup && (
+            <p className="text-ink-soft/70 px-1 text-xs italic">
+              hint: it&apos;s your hotspot
+            </p>
+          )}
 
           {error && (
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
