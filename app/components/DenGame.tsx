@@ -485,9 +485,9 @@ export default function DenGame({ frames = [] }: { frames?: Frame[] }) {
     ? Math.max(0, Math.min(playerX - stageW / 2, worldW - stageW))
     : 0;
 
-  // Tap/click the floor to walk there. Uses live measurements (not possibly
-  // stale render state) and clamps the target to the *visible* screen, so a
-  // tap never marches the gardener off-page into the scrolled-away room.
+  // Tap a side of the screen to send the gardener that way — he walks to
+  // that end of the room and stops cleanly at the edge. Uses live
+  // measurements (not possibly-stale render state) so the direction is right.
   const onStageTap = (e: React.PointerEvent) => {
     setOpenFrameId(null);
     const el = stageRef.current;
@@ -497,11 +497,8 @@ export default function DenGame({ frames = [] }: { frames?: Frame[] }) {
     const wWorld = WORLD_W * scaleRef.current;
     const cam = Math.max(0, Math.min(pos.current - w / 2, wWorld - w));
     const tapWorld = e.clientX - rect.left + cam;
-    // Keep within [world bounds] and within what's currently on screen.
-    target.current = Math.max(
-      Math.max(50, cam + 40),
-      Math.min(Math.min(wWorld - 50, cam + w - 40), tapWorld),
-    );
+    // Walk toward the tapped side, all the way to that end of the room.
+    target.current = tapWorld >= pos.current ? wWorld - 50 : 50;
   };
 
   const speak = (e: React.MouseEvent) => {
