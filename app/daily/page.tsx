@@ -24,12 +24,15 @@ export default async function DailyPage() {
   // and CI builds have no database.
   await connection();
   const day = serverDay();
-  const [article, ticks] = await Promise.all([
+  const [article, ticks, bookmarks] = await Promise.all([
     articleOfTheDay(day).catch(() => null),
     prisma.dailyTick.findMany({
       orderBy: { day: "desc" },
       take: 400,
       select: { kind: true, day: true },
+    }),
+    prisma.bookmark.findMany({
+      orderBy: [{ favorite: "desc" }, { createdAt: "desc" }],
     }),
   ]);
 
@@ -43,6 +46,7 @@ export default async function DailyPage() {
         scene={sceneOfTheDay(day)}
         listening={listeningOfTheDay(day)}
         ticks={ticks}
+        bookmarks={bookmarks}
         serverDay={day}
       />
     </RoomShell>
