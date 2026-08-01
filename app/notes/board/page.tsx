@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { prisma } from "@/app/lib/prisma";
+import { isOwner } from "@/app/lib/session";
 import RoomShell from "@/app/components/RoomShell";
 import IdeaBoard from "@/app/components/IdeaBoard";
 
@@ -13,17 +14,20 @@ export const metadata: Metadata = {
 export default async function BoardPage() {
   // Render per request — notes come and go, and CI builds have no database.
   await connection();
-  const ideas = await prisma.idea.findMany({
-    orderBy: { createdAt: "asc" },
-    select: { id: true, bucket: true, text: true, done: true },
-  });
+  const [ideas, canEdit] = await Promise.all([
+    prisma.idea.findMany({
+      orderBy: { createdAt: "asc" },
+      select: { id: true, bucket: true, text: true, done: true },
+    }),
+    isOwner(),
+  ]);
 
   return (
     <RoomShell
       title="the hobby board"
       tagline="things to read about, write about, explore & solve"
     >
-      <IdeaBoard ideas={ideas} canEdit />
+      <IdeaBoard ideas={ideas} canEdit={canEdit} />
     </RoomShell>
   );
 }

@@ -1,7 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Fraunces, Pixelify_Sans } from "next/font/google";
+import {
+  Geist,
+  Geist_Mono,
+  Fraunces,
+  Pixelify_Sans,
+  Lora,
+  Instrument_Sans,
+  Courier_Prime,
+} from "next/font/google";
 import "./globals.css";
 import Providers from "./components/Providers";
+import Sidebar from "./components/Sidebar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,6 +31,25 @@ const fraunces = Fraunces({
 // Pixel font for the Plant Shop theme's headings.
 const pixelify = Pixelify_Sans({
   variable: "--font-pixel",
+  subsets: ["latin"],
+});
+
+// The Cottage typefaces: Lora (serif), Instrument Sans (body), Courier Prime
+// (typewriter labels).
+const lora = Lora({
+  variable: "--font-lora",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+});
+
+const instrument = Instrument_Sans({
+  variable: "--font-instrument",
+  subsets: ["latin"],
+});
+
+const courier = Courier_Prime({
+  variable: "--font-courier",
+  weight: ["400", "700"],
   subsets: ["latin"],
 });
 
@@ -60,18 +88,23 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} ${pixelify.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} ${pixelify.variable} ${lora.variable} ${instrument.variable} ${courier.variable} h-full antialiased`}
     >
       <head>
         {/* Apply the saved theme before paint to avoid a flash. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{document.documentElement.dataset.theme=localStorage.getItem('theme')||'plantshop';}catch(e){}})();`,
+            __html: `(function(){try{document.documentElement.dataset.theme=localStorage.getItem('theme')||'cottage';}catch(e){}})();`,
           }}
         />
       </head>
-      <body className="flex min-h-full flex-col">
-        <Providers>{children}</Providers>
+      <body className="min-h-full">
+        <Providers>
+          <Sidebar />
+          <main className="flex min-h-screen flex-col pt-14 md:ml-56 md:pt-0">
+            {children}
+          </main>
+        </Providers>
       </body>
     </html>
   );

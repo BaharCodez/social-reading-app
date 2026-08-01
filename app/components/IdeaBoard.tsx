@@ -10,26 +10,32 @@ export interface Idea {
   done: boolean;
 }
 
+// Soft cottage note colours — pressed-flower tints on parchment.
 const BUCKETS = [
   {
     key: "read",
     label: "read about",
-    note: "bg-amber-200",
-    tape: "bg-amber-400/50",
+    note: "bg-[#F1E3C2]",
+    tape: "bg-[#D8BE86]/60",
   },
   {
     key: "write",
     label: "write about",
-    note: "bg-sky-200",
-    tape: "bg-sky-400/50",
+    note: "bg-[#DCE5D3]",
+    tape: "bg-[#A9BE9E]/60",
   },
   {
     key: "explore",
     label: "explore",
-    note: "bg-lime-200",
-    tape: "bg-lime-500/40",
+    note: "bg-[#E3E7CB]",
+    tape: "bg-[#B9C48A]/60",
   },
-  { key: "solve", label: "solve", note: "bg-rose-200", tape: "bg-rose-400/50" },
+  {
+    key: "solve",
+    label: "solve",
+    note: "bg-[#EAD6C6]",
+    tape: "bg-[#C79E86]/60",
+  },
 ] as const;
 
 function StickyNote({
@@ -49,7 +55,7 @@ function StickyNote({
 }) {
   return (
     <div
-      className={`${bucket.note} ${tilt} relative p-3 pt-4 text-sm text-stone-800 shadow-[3px_4px_0_rgba(0,0,0,0.15)] transition-transform hover:rotate-0`}
+      className={`${bucket.note} ${tilt} relative p-3 pt-4 text-sm text-[#2A1F0E] shadow-[3px_4px_0_rgba(42,31,14,0.12)] transition-transform hover:rotate-0`}
     >
       {/* tape */}
       <span
@@ -61,7 +67,7 @@ function StickyNote({
           <button
             type="button"
             onClick={() => onToggle(idea)}
-            className="text-stone-600 hover:text-stone-900"
+            className="text-[#6B5A3E] hover:text-[#2A1F0E]"
             title={idea.done ? "not done after all" : "mark done"}
           >
             {idea.done ? "↺ undo" : "✓ done"}
@@ -69,7 +75,7 @@ function StickyNote({
           <button
             type="button"
             onClick={() => onRemove(idea.id)}
-            className="ml-auto text-stone-500 hover:text-red-600"
+            className="ml-auto text-[#8A7550] hover:text-[#9B4E2E]"
             title="unpin this note"
           >
             ✕
@@ -89,31 +95,40 @@ export default function IdeaBoard({
 }) {
   const router = useRouter();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [note, setNote] = useState<string | null>(null);
 
   async function pin(bucket: string) {
     const text = (drafts[bucket] ?? "").trim();
     if (!text) return;
-    setDrafts((d) => ({ ...d, [bucket]: "" }));
-    await fetch("/api/ideas", {
+    setNote(null);
+    const res = await fetch("/api/ideas", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ bucket, text }),
     });
-    router.refresh();
+    if (res.ok) {
+      // Only clear the draft once it's safely pinned.
+      setDrafts((d) => ({ ...d, [bucket]: "" }));
+      router.refresh();
+    } else {
+      setNote("Sign in as the owner to pin ideas.");
+    }
   }
 
   async function toggle(idea: Idea) {
-    await fetch(`/api/ideas/${idea.id}`, {
+    const res = await fetch(`/api/ideas/${idea.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ done: !idea.done }),
     });
-    router.refresh();
+    if (res.ok) router.refresh();
+    else setNote("Sign in as the owner to change the board.");
   }
 
   async function remove(id: string) {
-    await fetch(`/api/ideas/${id}`, { method: "DELETE" });
-    router.refresh();
+    const res = await fetch(`/api/ideas/${id}`, { method: "DELETE" });
+    if (res.ok) router.refresh();
+    else setNote("Sign in as the owner to change the board.");
   }
 
   return (
@@ -169,6 +184,12 @@ export default function IdeaBoard({
           })}
         </div>
       </div>
+
+      {note && (
+        <p className="text-accent-2 mt-4 text-center text-xs font-medium">
+          {note}
+        </p>
+      )}
 
       <p className="text-ink-soft mt-4 text-center text-xs">
         ideas graduate from the board into{" "}

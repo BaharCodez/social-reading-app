@@ -1,17 +1,35 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { connection } from "next/server";
-import { prisma } from "@/app/lib/prisma";
-import { auth } from "@/app/lib/auth";
-import ThemePicker from "./components/ThemePicker";
-import AmbientMusic from "./components/AmbientMusic";
-import DenGame from "./components/DenGame";
 
-/* The den: a walkable pixel room where every piece of furniture is a door
-   into a section of the site. Old share links (`/?book=…`) predate the
-   house and are forwarded to the study. */
+/* The hallway: the cottage's welcome landing. Every card is a door into a
+   room of the house. Old share links (`/?book=…`) predate the house and are
+   forwarded to the study. */
 
-export default async function Den({
+const ROOMS = [
+  { href: "/study", label: "The Study", emoji: "📚", tagline: "what I'm reading" },
+  { href: "/notes", label: "Writing Room", emoji: "✒️", tagline: "notes & essays" },
+  { href: "/daily", label: "Daily Room", emoji: "☕", tagline: "today, always today" },
+  { href: "/workshop", label: "The Workshop", emoji: "🔧", tagline: "things I make" },
+  { href: "/hallway", label: "The Gallery", emoji: "🖼️", tagline: "frames on the wall" },
+];
+
+// Hand-drawn leaf, echoing the sidebar botanicals.
+function Leaf({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 80 120" className={className} aria-hidden="true" fill="none">
+      <path
+        d="M40 110 C40 110 10 80 8 50 C6 20 40 5 40 5 C40 5 74 20 72 50 C70 80 40 110 40 110Z"
+        fill="#5C7D5D"
+        opacity="0.5"
+      />
+      <path d="M40 110 L40 5" stroke="#3D5A3E" strokeWidth="1.5" opacity="0.5" />
+      <path d="M40 70 C40 70 22 55 18 40" stroke="#3D5A3E" strokeWidth="1" opacity="0.4" />
+      <path d="M40 55 C40 55 55 42 60 30" stroke="#3D5A3E" strokeWidth="1" opacity="0.4" />
+    </svg>
+  );
+}
+
+export default async function Hallway({
   searchParams,
 }: {
   searchParams: Promise<{ book?: string | string[] }>;
@@ -21,70 +39,61 @@ export default async function Den({
     redirect(`/study?book=${encodeURIComponent(book)}`);
   }
 
-  // Render per request (searchParams already implies it, but the frame
-  // query below must never run during a database-less CI build).
-  await connection();
-
-  const session = await auth();
-  const signedIn = !!session?.user;
-
-  // The first few hallway frames get auto-hung on the den wall.
-  const wallFrames = await prisma.frame.findMany({
-    where: { kind: { not: "sandbox" } },
-    orderBy: [{ sort: "asc" }, { createdAt: "asc" }],
-    take: 5,
-    select: {
-      id: true,
-      kind: true,
-      title: true,
-      subtitle: true,
-      detail: true,
-      years: true,
-      link: true,
-    },
-  });
-
   return (
-    <main className="flex flex-1 flex-col overflow-hidden">
-      <header className="flex items-center justify-end gap-2 px-4 pt-3 sm:px-6">
-        <Link
-          href={signedIn ? "/study" : "/login"}
-          className="border-line text-ink hover:bg-ink/5 font-pixel mr-auto rounded-full border px-3 py-1.5 text-xs transition-colors"
-        >
-          {signedIn ? "you're in ✓" : "log in"}
-        </Link>
-        <AmbientMusic />
-        <ThemePicker />
-      </header>
+    <div className="relative flex-1 overflow-hidden">
+      {/* botanical corners */}
+      <div className="pointer-events-none absolute top-0 right-0 h-72 w-56 opacity-40">
+        <Leaf className="sway absolute top-6 right-10 h-24 w-16" />
+        <Leaf className="sway absolute top-20 right-24 h-14 w-10" />
+      </div>
+      <div className="pointer-events-none absolute bottom-0 left-0 h-56 w-44 opacity-30">
+        <Leaf className="sway absolute bottom-8 left-6 h-20 w-14 -scale-x-100" />
+      </div>
 
-      {/* the hanging sign */}
-      <div className="flex flex-col items-center px-4">
-        <div className="bg-shelf-edge h-4 w-1" />
-        <h1 className="font-pixel text-ink pixel-frame bg-surface px-6 py-3 text-3xl sm:text-4xl">
-          bahar&apos;s house
+      <div className="fade-up mx-auto max-w-2xl px-8 pt-16 pb-16">
+        <span className="text-accent-2 font-mono text-xs tracking-[0.2em] uppercase">
+          — the hallway
+        </span>
+        <h1 className="text-ink mt-3 font-serif text-4xl leading-tight sm:text-5xl">
+          Hello, come in.
+          <br />
+          <em>Make yourself at home.</em>
         </h1>
-        <p className="text-ink-soft mt-3 text-sm">
-          a cozy corner for books, notes &amp; blinking lights
+        <p className="text-ink-soft mt-6 max-w-xl text-lg leading-relaxed">
+          I&apos;m a maker, reader, and tinkerer. This is my little corner of
+          the internet — organised like the rooms of a house, where different
+          parts of my life live.
         </p>
-        <p className="font-pixel text-ink-soft/80 mt-2 text-xs">
-          walk with ← → (or hold the floor) · press E at a door to enter
+        <p className="text-ink-soft/90 mt-3 max-w-lg leading-relaxed">
+          There&apos;s no particular order. Wander where you like. The kettle&apos;s
+          always on.
         </p>
-      </div>
 
-      {/* the room */}
-      <div className="mt-auto">
-        <DenGame frames={wallFrames} />
-      </div>
+        <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {ROOMS.map((room) => (
+            <Link
+              key={room.href}
+              href={room.href}
+              className="border-line bg-surface hover:border-accent group rounded-sm border p-5 transition-colors"
+            >
+              <div className="mb-2 text-2xl">{room.emoji}</div>
+              <div className="text-ink font-serif text-base font-medium">
+                {room.label}
+              </div>
+              <div className="text-accent-2 mt-0.5 font-mono text-xs">
+                {room.tagline}
+              </div>
+            </Link>
+          ))}
+        </div>
 
-      {/* the foundation */}
-      <div className="border-shelf-edge bg-shelf-edge flex h-9 shrink-0 items-center justify-center border-t-4">
-        <Link
-          href="/login"
-          className="font-pixel text-accent-ink/70 hover:text-accent-ink text-xs transition-colors"
-        >
-          owner&apos;s entrance
-        </Link>
+        <div className="border-line mt-16 flex items-center gap-3 border-t pt-8">
+          <Leaf className="h-8 w-6 opacity-50" />
+          <p className="text-ink-soft font-mono text-xs">
+            tend the garden · write the words · make the things
+          </p>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

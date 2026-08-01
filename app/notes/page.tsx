@@ -53,7 +53,7 @@ export default async function NotesPage() {
           <div className="flex shrink-0 flex-col items-end gap-2 pb-1">
             <Link
               href="/notes/board"
-              className="rotate-2 bg-amber-200 px-3 py-2 text-xs font-medium text-stone-800 shadow-[3px_4px_0_rgba(0,0,0,0.15)] transition-transform hover:rotate-0"
+              className="border-line text-ink hover:bg-accent/10 rotate-2 rounded-sm border bg-surface px-3 py-2 text-xs font-medium shadow-[3px_4px_0_rgba(42,31,14,0.1)] transition-all hover:rotate-0"
             >
               📌 the hobby board
             </Link>
