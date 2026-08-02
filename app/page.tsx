@@ -6,11 +6,10 @@ import { redirect } from "next/navigation";
    forwarded to the study. */
 
 const ROOMS = [
-  { href: "/study", label: "The Study", emoji: "📚", tagline: "what I'm reading" },
+  { href: "/hallway", label: "My Portfolio", emoji: "💼", tagline: "projects, jobs & wins" },
   { href: "/notes", label: "Writing Room", emoji: "✒️", tagline: "notes & essays" },
   { href: "/daily", label: "Daily Room", emoji: "☕", tagline: "today, always today" },
   { href: "/workshop", label: "The Workshop", emoji: "🔧", tagline: "things I make" },
-  { href: "/hallway", label: "My Portfolio", emoji: "💼", tagline: "projects, jobs & wins" },
 ];
 
 // Hand-drawn leaf, echoing the sidebar botanicals.
