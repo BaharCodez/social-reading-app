@@ -471,7 +471,7 @@ export default function DailyRoom({
           the shelf
         </h2>
         <p className="text-ink-soft mt-1 text-xs">
-          reads worth keeping — star the best into the pile.
+          reads worth keeping. star the best into the pile.
         </p>
         {shelfNote && (
           <p className="text-accent-2 mt-2 text-xs font-medium">{shelfNote}</p>
@@ -524,7 +524,7 @@ export default function DailyRoom({
           ) : (
             <p className="text-ink-soft mt-2 text-sm">
               {shelf.length === 0
-                ? "Nothing shelved yet — save a read above."
+                ? "Nothing shelved yet. Save a read above."
                 : "Everything here is in the pile."}
             </p>
           )}

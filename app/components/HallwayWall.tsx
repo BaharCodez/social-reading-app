@@ -19,9 +19,13 @@ const KIND_LABEL: Record<string, string> = {
   achievement: "achievement",
 };
 
-const POSTER_ACCENTS = ["bg-accent", "bg-accent-2", "bg-ink-soft/60"];
+const FILTER_LABEL: Record<string, string> = {
+  job: "jobs",
+  project: "projects",
+  achievement: "achievements",
+};
 
-/* One poster in a pixel frame. */
+/* Owner-only edit / remove controls for a frame. */
 function FrameControls({
   frame,
   onEdit,
@@ -32,13 +36,13 @@ function FrameControls({
   onRemove: (id: string) => void;
 }) {
   return (
-    <div className="absolute -top-2 -right-2 z-10 flex gap-1">
+    <span className="ml-2 flex shrink-0 gap-1">
       <button
         type="button"
         onClick={() => onEdit(frame)}
         aria-label={`Edit ${frame.title}`}
         title="rewrite this frame"
-        className="text-ink-soft hover:text-accent flex h-6 w-6 items-center justify-center rounded-full border-2 border-current bg-[var(--surface)] text-xs transition-colors"
+        className="text-ink-soft hover:text-accent text-xs transition-colors"
       >
         ✎
       </button>
@@ -47,65 +51,86 @@ function FrameControls({
         onClick={() => onRemove(frame.id)}
         aria-label={`Take down ${frame.title}`}
         title="take this frame down"
-        className="text-ink-soft flex h-6 w-6 items-center justify-center rounded-full border-2 border-current bg-[var(--surface)] text-xs transition-colors hover:text-red-500"
+        className="text-ink-soft text-xs transition-colors hover:text-[#9B4E2E]"
       >
         ✕
       </button>
-    </div>
+    </span>
   );
 }
 
-function Poster({
+/* An expandable frame in the "made & done" column (interests-accordion style). */
+function AccordionFrame({
   frame,
-  accent,
+  isOpen,
+  onToggle,
   canEdit,
   onEdit,
   onRemove,
 }: {
   frame: Frame;
-  accent: string;
+  isOpen: boolean;
+  onToggle: () => void;
   canEdit: boolean;
   onEdit: (frame: Frame) => void;
   onRemove: (id: string) => void;
 }) {
-  const inner = (
-    <div className={`${accent} flex h-28 flex-col justify-end p-2 sm:h-32`}>
-      {frame.years && (
-        <span className="font-mono text-[10px] text-white/80">
-          {frame.years}
-        </span>
-      )}
-      <span className="font-pixel text-accent-ink text-lg leading-tight">
-        {frame.title}
-      </span>
-    </div>
-  );
   return (
-    <div className="pixel-frame bg-surface hover:border-accent fade-up relative flex flex-col p-3 transition-all duration-200 hover:-translate-y-0.5">
-      {canEdit && (
-        <FrameControls frame={frame} onEdit={onEdit} onRemove={onRemove} />
-      )}
-      {frame.link ? (
-        <a href={frame.link} target="_blank" rel="noreferrer" className="group">
-          {inner}
-        </a>
-      ) : (
-        inner
-      )}
-      {frame.subtitle && (
-        <p className="text-ink mt-3 text-sm font-medium">{frame.subtitle}</p>
-      )}
-      {frame.detail && (
-        <p className="text-ink-soft mt-1 font-mono text-xs whitespace-pre-line">
-          {frame.detail}
-        </p>
+    <div className="border-line border-b">
+      <div className="flex items-center">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="group flex flex-1 items-center justify-between gap-3 py-3 text-left"
+        >
+          <span
+            className={`font-serif text-base transition-colors ${
+              isOpen ? "text-accent" : "text-ink group-hover:text-accent"
+            }`}
+          >
+            {frame.title}
+          </span>
+          <span className="text-accent-2 shrink-0 font-mono text-lg">
+            {isOpen ? "−" : "+"}
+          </span>
+        </button>
+        {canEdit && (
+          <FrameControls frame={frame} onEdit={onEdit} onRemove={onRemove} />
+        )}
+      </div>
+      {isOpen && (
+        <div className="fade-up pb-4">
+          {frame.years && (
+            <p className="text-accent-2 mb-1 font-mono text-xs font-bold">
+              {frame.years}
+            </p>
+          )}
+          {frame.subtitle && (
+            <p className="text-ink text-sm leading-relaxed">{frame.subtitle}</p>
+          )}
+          {frame.detail && (
+            <p className="text-ink-soft mt-2 font-mono text-xs leading-relaxed whitespace-pre-line">
+              {frame.detail}
+            </p>
+          )}
+          {frame.link && (
+            <a
+              href={frame.link}
+              target="_blank"
+              rel="noreferrer"
+              className="text-accent mt-3 inline-block font-mono text-xs hover:underline"
+            >
+              visit ↗
+            </a>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-/* A brass-plaque row for a job. */
-function Plaque({
+/* A job in the "places I've worked" column. */
+function JobRow({
   frame,
   canEdit,
   onEdit,
@@ -117,15 +142,9 @@ function Plaque({
   onRemove: (id: string) => void;
 }) {
   return (
-    <div className="pixel-frame bg-surface hover:border-accent relative flex items-baseline gap-4 px-4 py-3 transition-colors">
-      {canEdit && (
-        <FrameControls frame={frame} onEdit={onEdit} onRemove={onRemove} />
-      )}
-      <span className="text-accent-2 w-24 shrink-0 font-mono text-xs font-bold">
-        {frame.years ?? "—"}
-      </span>
-      <div className="min-w-0">
-        <p className="font-pixel text-ink text-base">
+    <div className="border-line border-b pb-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-ink font-serif text-base">
           {frame.link ? (
             <a
               href={frame.link}
@@ -138,16 +157,22 @@ function Plaque({
           ) : (
             frame.title
           )}
-        </p>
-        {frame.subtitle && (
-          <p className="text-ink-soft text-sm">{frame.subtitle}</p>
-        )}
-        {frame.detail && (
-          <p className="text-ink-soft mt-0.5 font-mono text-xs whitespace-pre-line">
-            {frame.detail}
-          </p>
-        )}
+        </span>
+        <span className="text-accent-2 flex shrink-0 items-baseline gap-1 font-mono text-xs font-bold">
+          {frame.years ?? "—"}
+          {canEdit && (
+            <FrameControls frame={frame} onEdit={onEdit} onRemove={onRemove} />
+          )}
+        </span>
       </div>
+      {frame.subtitle && (
+        <p className="text-ink-soft mt-1 text-sm">{frame.subtitle}</p>
+      )}
+      {frame.detail && (
+        <p className="text-ink-soft mt-1 font-mono text-xs whitespace-pre-line">
+          {frame.detail}
+        </p>
+      )}
     </div>
   );
 }
@@ -174,8 +199,8 @@ export default function HallwayWall({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const [filter, setFilter] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const visible = filter ? frames.filter((f) => f.kind === filter) : frames;
   const jobs = visible.filter((f) => f.kind === "job");
@@ -232,32 +257,34 @@ export default function HallwayWall({
   }
 
   async function removeFrame(id: string) {
-    await fetch(`/api/frames/${id}`, { method: "DELETE" });
-    router.refresh();
+    const res = await fetch(`/api/frames/${id}`, { method: "DELETE" });
+    if (res.ok) router.refresh();
+    else setError("Sign in as the owner to change the wall.");
   }
 
   const field =
     "border-line text-ink focus:border-accent w-full rounded-lg border bg-transparent px-3 py-2 text-sm outline-none";
-
-  const FILTER_LABEL: Record<string, string> = {
-    job: "jobs",
-    project: "projects",
-    achievement: "achievements",
-  };
+  const pill = (active: boolean) =>
+    `font-mono text-xs rounded-full px-3 py-1.5 transition-colors ${
+      active
+        ? "bg-accent text-accent-ink"
+        : "border-line text-ink-soft hover:text-ink border"
+    }`;
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-10 sm:px-6">
+    <div className="mx-auto w-full max-w-4xl px-6 pt-8 pb-16 sm:px-8">
+      <p className="text-ink-soft mb-8 max-w-xl leading-relaxed">
+        The things I&apos;ve built, the places I&apos;ve worked, and the wins
+        worth framing. Open any one to read the story behind it.
+      </p>
+
       {/* filter pills */}
       {kinds.length > 1 && (
-        <div className="mb-8 flex flex-wrap gap-2">
+        <div className="mb-10 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => setFilter(null)}
-            className={`font-mono text-xs rounded-full px-3 py-1.5 transition-colors ${
-              filter === null
-                ? "bg-accent text-accent-ink"
-                : "border-line text-ink-soft hover:text-ink border"
-            }`}
+            className={pill(filter === null)}
           >
             everything
           </button>
@@ -266,11 +293,7 @@ export default function HallwayWall({
               key={k}
               type="button"
               onClick={() => setFilter(filter === k ? null : k)}
-              className={`font-mono text-xs rounded-full px-3 py-1.5 transition-colors ${
-                filter === k
-                  ? "bg-accent text-accent-ink"
-                  : "border-line text-ink-soft hover:text-ink border"
-              }`}
+              className={pill(filter === k)}
             >
               {FILTER_LABEL[k]}
             </button>
@@ -278,68 +301,82 @@ export default function HallwayWall({
         </div>
       )}
 
-      {/* the career wall */}
-      {jobs.length > 0 && (
-        <section className="mb-8">
-          <h2 className="font-pixel text-ink-soft mb-3 text-xs tracking-wider uppercase">
-            places I&apos;ve worked
-          </h2>
-          <div className="space-y-3">
-            {jobs.map((f) => (
-              <Plaque
-                key={f.id}
-                frame={f}
-                canEdit={canEdit}
-                onEdit={startEdit}
-                onRemove={removeFrame}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* posters: projects + achievements */}
-      {posters.length > 0 && (
-        <section>
-          <h2 className="font-pixel text-ink-soft mb-3 text-xs tracking-wider uppercase">
-            things I&apos;ve made &amp; done
-          </h2>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-            {posters.map((f, i) => (
-              <Poster
-                key={f.id}
-                frame={f}
-                accent={POSTER_ACCENTS[i % POSTER_ACCENTS.length]}
-                canEdit={canEdit}
-                onEdit={startEdit}
-                onRemove={removeFrame}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {frames.length === 0 && (
-        <div className="pixel-frame bg-surface flex flex-col items-center gap-2 p-8 text-center">
-          <div className="border-shelf-edge bg-bg flex h-20 w-16 items-center justify-center border-4">
-            <span className="text-ink-soft text-2xl">?</span>
-          </div>
+      {frames.length === 0 ? (
+        <div className="border-line bg-surface rounded-sm border p-8 text-center">
           <p className="text-ink-soft text-sm">
-            The wall is bare — nothing has been hung up yet.
+            The wall is bare. Nothing has been hung up yet.
           </p>
+        </div>
+      ) : (
+        <div className="grid gap-10 md:grid-cols-2 md:gap-12">
+          {/* made & done — accordion */}
+          <div>
+            <h2 className="text-accent-2 mb-5 font-mono text-xs tracking-[0.2em] uppercase">
+              things I&apos;ve made &amp; done
+            </h2>
+            {posters.length > 0 ? (
+              <div>
+                {posters.map((f) => (
+                  <AccordionFrame
+                    key={f.id}
+                    frame={f}
+                    isOpen={openId === f.id}
+                    onToggle={() => setOpenId(openId === f.id ? null : f.id)}
+                    canEdit={canEdit}
+                    onEdit={startEdit}
+                    onRemove={removeFrame}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-ink-soft text-sm italic">nothing here yet</p>
+            )}
+          </div>
+
+          {/* places I've worked */}
+          <div>
+            <h2 className="text-accent-2 mb-5 font-mono text-xs tracking-[0.2em] uppercase">
+              places I&apos;ve worked
+            </h2>
+            {jobs.length > 0 ? (
+              <div className="space-y-4">
+                {jobs.map((f) => (
+                  <JobRow
+                    key={f.id}
+                    frame={f}
+                    canEdit={canEdit}
+                    onEdit={startEdit}
+                    onRemove={removeFrame}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-ink-soft text-sm italic">nothing here yet</p>
+            )}
+
+            <div className="border-line bg-surface mt-8 rounded-sm border p-5">
+              <p className="text-accent-2 mb-2 font-mono text-xs tracking-[0.2em] uppercase">
+                the wall keeps growing
+              </p>
+              <p className="text-ink-soft text-sm leading-relaxed">
+                New frames go up as I build. Check back, or peek into the
+                workshop for what&apos;s on the bench.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
       {/* curator mode */}
       {canEdit && (
-        <div className="mt-10">
+        <div className="mt-12">
           {adding ? (
             <form
               onSubmit={hangFrame}
-              className="pixel-frame bg-surface space-y-3 p-4"
+              className="border-line bg-surface space-y-3 rounded-sm border p-4"
             >
               <div className="flex items-center gap-3">
-                <h3 className="font-pixel text-ink text-sm">
+                <h3 className="text-ink font-serif text-base">
                   {editingId ? "rewrite this frame" : "hang a new frame"}
                 </h3>
                 <select
@@ -388,12 +425,12 @@ export default function HallwayWall({
                   onChange={(e) => setForm({ ...form, link: e.target.value })}
                 />
               </div>
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              {error && <p className="text-sm text-[#9B4E2E]">{error}</p>}
               <div className="flex gap-2">
                 <button
                   type="submit"
                   disabled={busy}
-                  className="bg-accent text-accent-ink font-pixel rounded-full px-4 py-2 text-sm hover:opacity-90 disabled:opacity-50"
+                  className="bg-accent text-accent-ink rounded-full px-4 py-2 text-sm hover:opacity-90 disabled:opacity-50"
                 >
                   {busy ? "saving…" : editingId ? "save changes" : "hang it up"}
                 </button>
@@ -411,11 +448,14 @@ export default function HallwayWall({
               <button
                 type="button"
                 onClick={() => setAdding(true)}
-                className="font-pixel text-ink-soft hover:text-ink border-line hover:border-accent rounded border-2 border-dashed px-4 py-2 text-sm transition-colors"
+                className="text-ink-soft hover:text-ink border-line hover:border-accent rounded-full border border-dashed px-4 py-2 font-mono text-xs transition-colors"
               >
                 + hang a frame
               </button>
             </div>
+          )}
+          {error && !adding && (
+            <p className="text-accent-2 mt-3 text-center text-xs">{error}</p>
           )}
         </div>
       )}

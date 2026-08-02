@@ -26,6 +26,7 @@ export default async function BoardPage() {
     <RoomShell
       title="the hobby board"
       tagline="things to read about, write about, explore & solve"
+      back={{ href: "/notes", label: "writing room" }}
     >
       <IdeaBoard ideas={ideas} canEdit={canEdit} />
     </RoomShell>
