@@ -9,6 +9,7 @@ import {
   Courier_Prime,
 } from "next/font/google";
 import "./globals.css";
+import { isOwner } from "./lib/session";
 import Providers from "./components/Providers";
 import Sidebar from "./components/Sidebar";
 import VisitTracker from "./components/VisitTracker";
@@ -81,11 +82,13 @@ export const viewport: Viewport = {
   interactiveWidget: "resizes-content",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Owner-only rooms (e.g. roadmaps) are hidden from the nav for everyone else.
+  const owner = await isOwner();
   return (
     <html
       lang="en"
@@ -102,7 +105,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full">
         <Providers>
-          <Sidebar />
+          <Sidebar isOwner={owner} />
           <main className="flex min-h-screen flex-col pt-14 md:ml-56 md:pt-0">
             {children}
           </main>

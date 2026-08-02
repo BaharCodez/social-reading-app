@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { isOwner } from "@/app/lib/session";
@@ -8,14 +9,15 @@ import RoomShell from "@/app/components/RoomShell";
 export const metadata: Metadata = {
   title: "roadmaps — bahar's house",
   description: "Self-paced learning paths, one small chunk at a time.",
+  // The whole room is owner-only — keep it out of search too.
+  robots: { index: false, follow: false },
 };
 
 export default async function RoadmapsPage() {
   await connection();
-  const owner = await isOwner();
+  // Roadmaps is a private room: only the owner may see it. Others get a 404.
+  if (!(await isOwner())) notFound();
   const roadmaps = await prisma.roadmap.findMany({
-    // Private roadmaps (personal STAR stories) only show for the owner.
-    where: owner ? undefined : { private: false },
     orderBy: [{ sort: "asc" }, { createdAt: "asc" }],
     select: {
       slug: true,

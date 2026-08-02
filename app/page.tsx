@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { isOwner } from "@/app/lib/session";
 
 /* The hallway: the cottage's welcome landing. Every card is a door into a
    room of the house. Old share links (`/?book=…`) predate the house and are
@@ -9,7 +10,8 @@ const ROOMS = [
   { href: "/hallway", label: "My Portfolio", emoji: "💼", tagline: "projects, jobs & wins" },
   { href: "/notes", label: "Writing Room", emoji: "✒️", tagline: "notes & essays" },
   { href: "/study", label: "The Study", emoji: "📚", tagline: "what I'm reading" },
-  { href: "/roadmaps", label: "Roadmaps", emoji: "🗺️", tagline: "learn it chunk by chunk" },
+  // Roadmaps is a private room — only shown to the owner (see ownerOnly).
+  { href: "/roadmaps", label: "Roadmaps", emoji: "🗺️", tagline: "learn it chunk by chunk", ownerOnly: true },
   { href: "/daily", label: "Daily Room", emoji: "☕", tagline: "today, always today" },
   { href: "/workshop", label: "The Workshop", emoji: "🔧", tagline: "things I make" },
 ];
@@ -39,6 +41,9 @@ export default async function Hallway({
   if (typeof book === "string" && book) {
     redirect(`/study?book=${encodeURIComponent(book)}`);
   }
+
+  const owner = await isOwner();
+  const rooms = ROOMS.filter((room) => !room.ownerOnly || owner);
 
   return (
     <div className="relative flex-1 overflow-hidden">
@@ -77,7 +82,7 @@ export default async function Hallway({
         </p>
 
         <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {ROOMS.map((room) => (
+          {rooms.map((room) => (
             <Link
               key={room.href}
               href={room.href}

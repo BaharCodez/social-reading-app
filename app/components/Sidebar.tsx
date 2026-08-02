@@ -14,6 +14,8 @@ type Room = {
   // Active when the path starts with `match` (falls back to href).
   match?: string;
   exact?: boolean;
+  // Only shown to the site owner (hidden from everyone else's nav).
+  ownerOnly?: boolean;
 };
 
 const ROOMS: Room[] = [
@@ -21,7 +23,7 @@ const ROOMS: Room[] = [
   { href: "/hallway", label: "My Portfolio", emoji: "💼" },
   { href: "/notes", label: "Writing Room", emoji: "✒️" },
   { href: "/study", label: "The Study", emoji: "📚" },
-  { href: "/roadmaps", label: "Roadmaps", emoji: "🗺️" },
+  { href: "/roadmaps", label: "Roadmaps", emoji: "🗺️", ownerOnly: true },
   { href: "/daily", label: "Daily Room", emoji: "☕" },
   { href: "/workshop", label: "The Workshop", emoji: "🔧" },
 ];
@@ -51,12 +53,13 @@ function Fern({ className = "" }: { className?: string }) {
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ isOwner = false }: { isOwner?: boolean }) {
   const pathname = usePathname() ?? "/";
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
 
   const signedIn = !!session?.user;
+  const rooms = ROOMS.filter((r) => !r.ownerOnly || isOwner);
   const isActive = (r: Room) =>
     r.exact ? pathname === r.href : pathname.startsWith(r.match ?? r.href);
 
@@ -77,7 +80,7 @@ export default function Sidebar() {
         </div>
 
         <ul className="space-y-1">
-          {ROOMS.map((room) => {
+          {rooms.map((room) => {
             const active = isActive(room);
             return (
               <li key={room.href}>

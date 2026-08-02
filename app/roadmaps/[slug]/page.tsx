@@ -16,7 +16,11 @@ export async function generateMetadata({
     where: { slug },
     select: { title: true },
   });
-  return { title: rm ? `${rm.title} — bahar's house` : "roadmap — bahar's house" };
+  return {
+    title: rm ? `${rm.title} — bahar's house` : "roadmap — bahar's house",
+    // The whole roadmaps room is owner-only — keep it out of search.
+    robots: { index: false, follow: false },
+  };
 }
 
 export default async function RoadmapPage({
@@ -33,9 +37,9 @@ export default async function RoadmapPage({
     }),
     isOwner(),
   ]);
+  // The whole roadmaps room is owner-only — others get a 404 even with the URL.
+  if (!canEdit) notFound();
   if (!roadmap) notFound();
-  // A private roadmap (personal STAR stories) is owner-only.
-  if (roadmap.private && !canEdit) notFound();
 
   return (
     <RoomShell
