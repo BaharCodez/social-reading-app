@@ -5,8 +5,8 @@ import { isOwner } from "@/app/lib/session";
 import HallwayWall from "@/app/components/HallwayWall";
 
 export const metadata: Metadata = {
-  title: "the gallery — bahar's house",
-  description: "Jobs, projects, and achievements, framed on the wall.",
+  title: "my portfolio — bahar's house",
+  description: "Projects, jobs, and achievements.",
 };
 
 export default async function GalleryPage() {
@@ -54,10 +54,10 @@ export default async function GalleryPage() {
         />
         <div className="absolute bottom-5 left-6 sm:left-8">
           <span className="text-accent-2 font-mono text-xs tracking-[0.2em] uppercase">
-            the gallery
+            my portfolio
           </span>
           <h1 className="text-ink mt-1 font-serif text-3xl sm:text-4xl">
-            What I&apos;ve made &amp; done
+            My Portfolio
           </h1>
         </div>
       </div>

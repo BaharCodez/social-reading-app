@@ -10,7 +10,7 @@ const ROOMS = [
   { href: "/notes", label: "Writing Room", emoji: "✒️", tagline: "notes & essays" },
   { href: "/daily", label: "Daily Room", emoji: "☕", tagline: "today, always today" },
   { href: "/workshop", label: "The Workshop", emoji: "🔧", tagline: "things I make" },
-  { href: "/hallway", label: "The Gallery", emoji: "🖼️", tagline: "frames on the wall" },
+  { href: "/hallway", label: "My Portfolio", emoji: "💼", tagline: "projects, jobs & wins" },
 ];
 
 // Hand-drawn leaf, echoing the sidebar botanicals.

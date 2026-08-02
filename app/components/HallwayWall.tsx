@@ -312,7 +312,7 @@ export default function HallwayWall({
           {/* made & done — accordion */}
           <div>
             <h2 className="text-accent-2 mb-5 font-mono text-xs tracking-[0.2em] uppercase">
-              things I&apos;ve made &amp; done
+              projects
             </h2>
             {posters.length > 0 ? (
               <div>

@@ -22,7 +22,7 @@ const ROOMS: Room[] = [
   { href: "/notes", label: "Writing Room", emoji: "✒️" },
   { href: "/daily", label: "Daily Room", emoji: "☕" },
   { href: "/workshop", label: "The Workshop", emoji: "🔧" },
-  { href: "/hallway", label: "The Gallery", emoji: "🖼️" },
+  { href: "/hallway", label: "My Portfolio", emoji: "💼" },
 ];
 
 // A little fern for the sidebar foot.
