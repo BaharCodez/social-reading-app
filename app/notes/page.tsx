@@ -41,7 +41,7 @@ export default async function NotesPage() {
     <RoomShell
       title="writing room"
       heading="The Writing Room"
-      tagline="reads · builds · writes"
+      tagline="notes, learning & essays"
       image={{
         src: "https://images.unsplash.com/photo-1517842645767-c639042777db?w=1200&h=400&fit=crop&auto=format",
         alt: "An open notebook and pen on a desk",

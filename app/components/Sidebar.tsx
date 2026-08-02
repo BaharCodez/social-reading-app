@@ -17,8 +17,8 @@ type Room = {
 };
 
 const ROOMS: Room[] = [
-  { href: "/hallway", label: "My Portfolio", emoji: "💼" },
   { href: "/", label: "The Hallway", emoji: "🏡", exact: true },
+  { href: "/hallway", label: "My Portfolio", emoji: "💼" },
   { href: "/notes", label: "Writing Room", emoji: "✒️" },
   { href: "/daily", label: "Daily Room", emoji: "☕" },
   { href: "/workshop", label: "The Workshop", emoji: "🔧" },

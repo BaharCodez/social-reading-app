@@ -261,12 +261,7 @@ export default function HallwayWall({
     );
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-6 pt-8 pb-16 sm:px-8">
-      <p className="text-ink-soft mb-8 max-w-xl leading-relaxed">
-        The things I&apos;ve built, the places I&apos;ve worked, and the wins
-        worth framing. Open any one to read the story behind it.
-      </p>
-
+    <div className="mx-auto w-full max-w-4xl px-6 pt-6 pb-16 sm:px-8">
       {/* filter by tag */}
       {allTags.length > 0 && (
         <div className="mb-10 flex flex-wrap gap-2">
