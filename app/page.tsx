@@ -55,18 +55,24 @@ export default async function Hallway({
           — the hallway
         </span>
         <h1 className="text-ink mt-3 font-serif text-4xl leading-tight sm:text-5xl">
-          Hello, come in.
+          Hi, I&apos;m Bahar.
           <br />
-          <em>Make yourself at home.</em>
+          <em>Welcome to my home.</em>
         </h1>
         <p className="text-ink-soft mt-6 max-w-xl text-lg leading-relaxed">
-          I&apos;m a maker, reader, and tinkerer. This is my little corner of
-          the internet — organised like the rooms of a house, where different
-          parts of my life live.
+          This is a safe space for me to build, explore, and write.
         </p>
-        <p className="text-ink-soft/90 mt-3 max-w-lg leading-relaxed">
-          There&apos;s no particular order. Wander where you like. The kettle&apos;s
-          always on.
+        <p className="text-ink-soft/90 mt-4 max-w-xl leading-relaxed">
+          I&apos;m a Computer Science student at the University of Edinburgh who
+          loves to challenge myself and learn. Between a part-time job, uni,
+          picking up new skills, and whatever side quest I&apos;m on, life gets
+          pretty full — so I built this not just to show my work, but to track
+          my hobbies and grow new habits.
+        </p>
+        <p className="text-ink-soft/90 mt-4 max-w-xl leading-relaxed">
+          I&apos;ll be updating it often, so if something looks unpolished or
+          unfinished, please respect the journey. Otherwise — wander into the
+          rooms, explore, and have a good time!
         </p>
 
         <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -81,7 +81,7 @@ function Poster({
     </div>
   );
   return (
-    <div className="pixel-frame bg-surface relative flex flex-col p-3">
+    <div className="pixel-frame bg-surface hover:border-accent fade-up relative flex flex-col p-3 transition-all duration-200 hover:-translate-y-0.5">
       {canEdit && (
         <FrameControls frame={frame} onEdit={onEdit} onRemove={onRemove} />
       )}
@@ -117,7 +117,7 @@ function Plaque({
   onRemove: (id: string) => void;
 }) {
   return (
-    <div className="pixel-frame bg-surface relative flex items-baseline gap-4 px-4 py-3">
+    <div className="pixel-frame bg-surface hover:border-accent relative flex items-baseline gap-4 px-4 py-3 transition-colors">
       {canEdit && (
         <FrameControls frame={frame} onEdit={onEdit} onRemove={onRemove} />
       )}
@@ -175,8 +175,16 @@ export default function HallwayWall({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const jobs = frames.filter((f) => f.kind === "job");
-  const posters = frames.filter((f) => f.kind !== "job");
+  const [filter, setFilter] = useState<string | null>(null);
+
+  const visible = filter ? frames.filter((f) => f.kind === filter) : frames;
+  const jobs = visible.filter((f) => f.kind === "job");
+  const posters = visible.filter((f) => f.kind !== "job");
+
+  // Only offer a pill for a kind that actually hangs on the wall.
+  const kinds = ["job", "project", "achievement"].filter((k) =>
+    frames.some((f) => f.kind === k),
+  );
 
   function startEdit(frame: Frame) {
     setForm({
@@ -231,8 +239,45 @@ export default function HallwayWall({
   const field =
     "border-line text-ink focus:border-accent w-full rounded-lg border bg-transparent px-3 py-2 text-sm outline-none";
 
+  const FILTER_LABEL: Record<string, string> = {
+    job: "jobs",
+    project: "projects",
+    achievement: "achievements",
+  };
+
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-10 sm:px-6">
+      {/* filter pills */}
+      {kinds.length > 1 && (
+        <div className="mb-8 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setFilter(null)}
+            className={`font-mono text-xs rounded-full px-3 py-1.5 transition-colors ${
+              filter === null
+                ? "bg-accent text-accent-ink"
+                : "border-line text-ink-soft hover:text-ink border"
+            }`}
+          >
+            everything
+          </button>
+          {kinds.map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setFilter(filter === k ? null : k)}
+              className={`font-mono text-xs rounded-full px-3 py-1.5 transition-colors ${
+                filter === k
+                  ? "bg-accent text-accent-ink"
+                  : "border-line text-ink-soft hover:text-ink border"
+              }`}
+            >
+              {FILTER_LABEL[k]}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* the career wall */}
       {jobs.length > 0 && (
         <section className="mb-8">
