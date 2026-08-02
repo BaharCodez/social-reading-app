@@ -156,6 +156,37 @@ model Bookmark {
   createdAt DateTime @default(now())
 }
 
+// A self-paced learning path (a book, a subject) broken into small steps.
+model Roadmap {
+  id        String        @id @default(cuid())
+  slug      String        @unique
+  title     String
+  subtitle  String        @default("")
+  emoji     String        @default("🗺️")
+  sort      Int           @default(0)
+  createdAt DateTime      @default(now())
+  steps     RoadmapStep[]
+}
+
+// One chunk of a roadmap: read/learn it, self-test, tick it off. `done` is the
+// owner's own progress (single-owner site). Advances only when marked done.
+model RoadmapStep {
+  id        String  @id @default(cuid())
+  roadmapId String
+  order     Int
+  group     String  @default("") // section header, e.g. "Ch 2" or "Scaling"
+  title     String
+  detail    String  @default("")
+  link      String?
+  recallQ   String  @default("")
+  recallA   String  @default("")
+  done      Boolean @default(false)
+
+  roadmap Roadmap @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+
+  @@index([roadmapId])
+}
+
 // One tick per habit per day — powers the daily room's streak board.
 model DailyTick {
   id        String   @id @default(cuid())

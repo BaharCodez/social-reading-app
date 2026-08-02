@@ -21,6 +21,7 @@ const ROOMS: Room[] = [
   { href: "/hallway", label: "My Portfolio", emoji: "💼" },
   { href: "/notes", label: "Writing Room", emoji: "✒️" },
   { href: "/study", label: "The Study", emoji: "📚" },
+  { href: "/roadmaps", label: "Roadmaps", emoji: "🗺️" },
   { href: "/daily", label: "Daily Room", emoji: "☕" },
   { href: "/workshop", label: "The Workshop", emoji: "🔧" },
 ];

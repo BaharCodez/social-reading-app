@@ -9,6 +9,7 @@ const ROOMS = [
   { href: "/hallway", label: "My Portfolio", emoji: "💼", tagline: "projects, jobs & wins" },
   { href: "/notes", label: "Writing Room", emoji: "✒️", tagline: "notes & essays" },
   { href: "/study", label: "The Study", emoji: "📚", tagline: "what I'm reading" },
+  { href: "/roadmaps", label: "Roadmaps", emoji: "🗺️", tagline: "learn it chunk by chunk" },
   { href: "/daily", label: "Daily Room", emoji: "☕", tagline: "today, always today" },
   { href: "/workshop", label: "The Workshop", emoji: "🔧", tagline: "things I make" },
 ];
