@@ -1,4 +1,5 @@
 import Link from "next/link";
+import RoomBanner from "./RoomBanner";
 
 /**
  * Shared chrome for every room in the house. Navigation lives in the sidebar,
@@ -25,34 +26,7 @@ export default function RoomShell({
     <div className="fade-up flex flex-1 flex-col">
       {image ? (
         <>
-          <div
-            className="border-line relative h-44 overflow-hidden border-b sm:h-56"
-            style={{ backgroundColor: "var(--bg-2)" }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={image.src}
-              alt={image.alt}
-              loading="lazy"
-              className="h-full w-full object-cover"
-              style={{ filter: "sepia(28%) saturate(82%) brightness(0.96)" }}
-            />
-            <div
-              className="absolute inset-0"
-              style={{
-                background:
-                  "linear-gradient(to bottom, transparent 35%, var(--bg) 100%)",
-              }}
-            />
-            <div className="absolute bottom-5 left-6 sm:left-8">
-              <span className="text-accent-2 font-mono text-xs tracking-[0.2em] uppercase">
-                {title}
-              </span>
-              <h1 className="text-ink mt-1 font-serif text-3xl sm:text-4xl">
-                {heading ?? title}
-              </h1>
-            </div>
-          </div>
+          <RoomBanner title={title} heading={heading} image={image} />
           {(back || tagline) && (
             <div className="mx-auto w-full max-w-3xl px-6 pt-6 sm:px-8">
               {back && (

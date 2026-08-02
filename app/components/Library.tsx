@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { useRef } from "react";
 import SignedInBar from "./SignedInBar";
+import RoomBanner from "./RoomBanner";
 import { useFileDrop } from "@/app/lib/useFileDrop";
 import type { BookMeta } from "@/app/lib/types";
 
@@ -80,6 +81,15 @@ export default function Library({
       </div>
 
       <SignedInBar userName={userName} />
+
+      <RoomBanner
+        title="the study"
+        heading="The Study"
+        image={{
+          src: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=1200&h=400&fit=crop&auto=format",
+          alt: "A wall of well-loved books",
+        }}
+      />
 
       {dragging && (
         <div className="bg-accent/15 text-ink pointer-events-none fixed inset-0 z-10 flex items-center justify-center text-lg font-medium backdrop-blur-[1px]">
