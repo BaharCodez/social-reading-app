@@ -16,8 +16,9 @@ export interface Frame {
 }
 
 const KIND_LABEL: Record<string, string> = {
-  job: "job",
   project: "project",
+  job: "technical role",
+  gig: "other job",
   achievement: "achievement",
 };
 
@@ -212,6 +213,7 @@ export default function HallwayWall({
     ? frames.filter((f) => f.tags?.includes(filter))
     : frames;
   const jobs = visible.filter((f) => f.kind === "job");
+  const gigs = visible.filter((f) => f.kind === "gig");
   const projects = visible.filter((f) => f.kind === "project");
   const achievements = visible.filter((f) => f.kind === "achievement");
 
@@ -357,14 +359,33 @@ export default function HallwayWall({
             {accordionList(achievements)}
           </div>
 
-          {/* places I've worked */}
+          {/* work: technical experience, then other jobs */}
           <div>
             <h2 className="text-accent-2 mb-5 font-mono text-xs tracking-[0.2em] uppercase">
-              places I&apos;ve worked
+              technical experience
             </h2>
             {jobs.length > 0 ? (
               <div className="space-y-4">
                 {jobs.map((f) => (
+                  <JobRow
+                    key={f.id}
+                    frame={f}
+                    canEdit={canEdit}
+                    onEdit={startEdit}
+                    onRemove={removeFrame}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-ink-soft text-sm italic">nothing here yet</p>
+            )}
+
+            <h2 className="text-accent-2 mt-10 mb-5 font-mono text-xs tracking-[0.2em] uppercase">
+              other jobs
+            </h2>
+            {gigs.length > 0 ? (
+              <div className="space-y-4">
+                {gigs.map((f) => (
                   <JobRow
                     key={f.id}
                     frame={f}
