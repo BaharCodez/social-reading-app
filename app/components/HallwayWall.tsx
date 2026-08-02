@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export interface Frame {
   id: string;
@@ -487,6 +488,15 @@ export default function HallwayWall({
             <p className="text-accent-2 mt-3 text-center text-xs">{error}</p>
           )}
         </div>
+      )}
+
+      {!canEdit && (
+        <p className="text-ink-soft mt-12 text-center font-mono text-xs">
+          <Link href="/login" className="text-accent hover:underline">
+            sign in
+          </Link>{" "}
+          as the owner to curate the wall.
+        </p>
       )}
     </div>
   );
