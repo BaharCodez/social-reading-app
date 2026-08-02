@@ -135,54 +135,6 @@ function AccordionFrame({
   );
 }
 
-/* A job in the "places I've worked" column. */
-function JobRow({
-  frame,
-  canEdit,
-  onEdit,
-  onRemove,
-}: {
-  frame: Frame;
-  canEdit: boolean;
-  onEdit: (frame: Frame) => void;
-  onRemove: (id: string) => void;
-}) {
-  return (
-    <div className="border-line border-b pb-4">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-ink font-serif text-base">
-          {frame.link ? (
-            <a
-              href={frame.link}
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-accent underline-offset-2 hover:underline"
-            >
-              {frame.title}
-            </a>
-          ) : (
-            frame.title
-          )}
-        </span>
-        <span className="text-accent-2 flex shrink-0 items-baseline gap-1 font-mono text-xs font-bold">
-          {frame.years ?? "—"}
-          {canEdit && (
-            <FrameControls frame={frame} onEdit={onEdit} onRemove={onRemove} />
-          )}
-        </span>
-      </div>
-      {frame.subtitle && (
-        <p className="text-ink-soft mt-1 text-sm">{frame.subtitle}</p>
-      )}
-      {frame.detail && (
-        <p className="text-ink-soft mt-1 font-mono text-xs whitespace-pre-line">
-          {frame.detail}
-        </p>
-      )}
-    </div>
-  );
-}
-
 const EMPTY_FORM = {
   kind: "project",
   title: "",
@@ -364,50 +316,12 @@ export default function HallwayWall({
             <h2 className="text-accent-2 mb-5 font-mono text-xs tracking-[0.2em] uppercase">
               technical experience
             </h2>
-            {jobs.length > 0 ? (
-              <div className="space-y-4">
-                {jobs.map((f) => (
-                  <JobRow
-                    key={f.id}
-                    frame={f}
-                    canEdit={canEdit}
-                    onEdit={startEdit}
-                    onRemove={removeFrame}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-ink-soft text-sm italic">nothing here yet</p>
-            )}
+            {accordionList(jobs)}
 
             <h2 className="text-accent-2 mt-10 mb-5 font-mono text-xs tracking-[0.2em] uppercase">
               jobs I&apos;ve worked
             </h2>
-            {gigs.length > 0 ? (
-              <div className="space-y-4">
-                {gigs.map((f) => (
-                  <JobRow
-                    key={f.id}
-                    frame={f}
-                    canEdit={canEdit}
-                    onEdit={startEdit}
-                    onRemove={removeFrame}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-ink-soft text-sm italic">nothing here yet</p>
-            )}
-
-            <div className="border-line bg-surface mt-8 rounded-sm border p-5">
-              <p className="text-accent-2 mb-2 font-mono text-xs tracking-[0.2em] uppercase">
-                the wall keeps growing
-              </p>
-              <p className="text-ink-soft text-sm leading-relaxed">
-                New frames go up as I build. Check back, or peek into the
-                workshop for what&apos;s on the bench.
-              </p>
-            </div>
+            {accordionList(gigs)}
           </div>
         </div>
       )}
