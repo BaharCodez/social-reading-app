@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import PatternViz from "./PatternViz";
+import { DSA_CONTENT } from "@/app/lib/dsaContent";
 
 export interface Step {
   id: string;
@@ -18,14 +20,18 @@ export interface Step {
 export default function RoadmapView({
   steps: initial,
   canEdit,
+  slug,
 }: {
   steps: Step[];
   canEdit: boolean;
+  slug?: string;
 }) {
   const [steps, setSteps] = useState(initial);
   const [openRecall, setOpenRecall] = useState<Set<string>>(new Set());
   const [openAnswer, setOpenAnswer] = useState<Set<string>>(new Set());
+  const [openStudy, setOpenStudy] = useState<Set<string>>(new Set());
   const [note, setNote] = useState<string | null>(null);
+  const isDsa = slug === "dsa";
 
   const total = steps.length;
   const done = steps.filter((s) => s.done).length;
@@ -176,6 +182,15 @@ export default function RoadmapView({
                         read it ↗
                       </a>
                     )}
+                    {isDsa && DSA_CONTENT[step.title] && (
+                      <button
+                        type="button"
+                        onClick={() => toggleSet(setOpenStudy, step.id)}
+                        className="text-ink-soft hover:text-ink font-mono text-xs"
+                      >
+                        {openStudy.has(step.id) ? "hide" : "▸ study"}
+                      </button>
+                    )}
                     {step.recallQ && (
                       <button
                         type="button"
@@ -186,6 +201,34 @@ export default function RoadmapView({
                       </button>
                     )}
                   </div>
+
+                  {isDsa &&
+                    DSA_CONTENT[step.title] &&
+                    openStudy.has(step.id) && (
+                      <div className="border-line bg-bg-2/40 fade-up mt-2 space-y-3 rounded-sm border p-3">
+                        {DSA_CONTENT[step.title].viz && (
+                          <div className="flex justify-center py-2">
+                            <PatternViz kind={DSA_CONTENT[step.title].viz!} />
+                          </div>
+                        )}
+                        <pre className="text-ink overflow-x-auto rounded-sm bg-[color-mix(in_srgb,var(--ink)_7%,transparent)] p-3 font-mono text-xs leading-relaxed">
+                          {DSA_CONTENT[step.title].template}
+                        </pre>
+                        <div className="flex flex-wrap gap-2">
+                          {DSA_CONTENT[step.title].problems.map((p) => (
+                            <a
+                              key={p.url}
+                              href={p.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="border-line text-ink hover:border-accent hover:text-accent rounded-full border px-2.5 py-1 font-mono text-[11px] transition-colors"
+                            >
+                              {p.name} ↗
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                   {step.recallQ && openRecall.has(step.id) && (
                     <div className="border-line bg-bg-2/40 mt-2 rounded-sm border p-3">

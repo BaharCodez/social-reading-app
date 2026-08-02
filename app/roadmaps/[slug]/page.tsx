@@ -44,7 +44,7 @@ export default async function RoadmapPage({
       tagline={roadmap.subtitle}
       back={{ href: "/roadmaps", label: "roadmaps" }}
     >
-      <RoadmapView steps={roadmap.steps} canEdit={canEdit} />
+      <RoadmapView steps={roadmap.steps} canEdit={canEdit} slug={roadmap.slug} />
     </RoomShell>
   );
 }
