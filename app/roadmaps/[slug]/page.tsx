@@ -34,6 +34,8 @@ export default async function RoadmapPage({
     isOwner(),
   ]);
   if (!roadmap) notFound();
+  // A private roadmap (personal STAR stories) is owner-only.
+  if (roadmap.private && !canEdit) notFound();
 
   return (
     <RoomShell

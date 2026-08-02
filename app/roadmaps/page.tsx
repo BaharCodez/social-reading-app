@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { prisma } from "@/app/lib/prisma";
+import { isOwner } from "@/app/lib/session";
 import RoomShell from "@/app/components/RoomShell";
 
 export const metadata: Metadata = {
@@ -11,13 +12,17 @@ export const metadata: Metadata = {
 
 export default async function RoadmapsPage() {
   await connection();
+  const owner = await isOwner();
   const roadmaps = await prisma.roadmap.findMany({
+    // Private roadmaps (personal STAR stories) only show for the owner.
+    where: owner ? undefined : { private: false },
     orderBy: [{ sort: "asc" }, { createdAt: "asc" }],
     select: {
       slug: true,
       title: true,
       subtitle: true,
       emoji: true,
+      private: true,
       steps: { select: { done: true } },
     },
   });
@@ -46,7 +51,14 @@ export default async function RoadmapsPage() {
               <div className="flex items-start gap-3">
                 <span className="text-2xl">{r.emoji}</span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-ink font-serif text-xl">{r.title}</h2>
+                  <h2 className="text-ink flex items-center gap-2 font-serif text-xl">
+                    {r.title}
+                    {r.private && (
+                      <span className="bg-ink/10 text-ink-soft rounded-full px-2 py-0.5 font-mono text-[10px] tracking-wide uppercase">
+                        🔒 private
+                      </span>
+                    )}
+                  </h2>
                   {r.subtitle && (
                     <p className="text-ink-soft mt-0.5 text-sm">{r.subtitle}</p>
                   )}

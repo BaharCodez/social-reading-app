@@ -191,7 +191,7 @@ export default function RoadmapView({
                     <div className="border-line bg-bg-2/40 mt-2 rounded-sm border p-3">
                       <p className="text-ink text-sm italic">{step.recallQ}</p>
                       {openAnswer.has(step.id) ? (
-                        <p className="text-ink-soft mt-2 text-sm leading-relaxed">
+                        <p className="text-ink-soft mt-2 text-sm leading-relaxed whitespace-pre-line">
                           {step.recallA}
                         </p>
                       ) : (
