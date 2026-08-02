@@ -381,7 +381,7 @@ export default function HallwayWall({
             )}
 
             <h2 className="text-accent-2 mt-10 mb-5 font-mono text-xs tracking-[0.2em] uppercase">
-              other jobs
+              jobs I&apos;ve worked
             </h2>
             {gigs.length > 0 ? (
               <div className="space-y-4">
