@@ -39,7 +39,7 @@ export const dailyTickSchema = z.object({
 // A frame on the hallway wall (job / project / achievement),
 // or a hand-built sandbox project shelved in the workshop.
 export const frameInputSchema = z.object({
-  kind: z.enum(["job", "project", "achievement", "sandbox"]),
+  kind: z.enum(["job", "gig", "project", "achievement", "sandbox"]),
   title: z.string().min(1, "Give it a title.").max(120).trim(),
   subtitle: z.string().max(600).trim().default(""),
   detail: z.string().max(2000).trim().default(""),
