@@ -140,6 +140,7 @@ model Frame {
   detail    String   @default("")
   years     String? // freeform: "2023–now", "summer 2024", …
   link      String?
+  tags      String[] @default([]) // freeform labels for filtering the wall
   sort      Int      @default(0)
   createdAt DateTime @default(now())
 }

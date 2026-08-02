@@ -38,32 +38,30 @@ export default async function NotesPage() {
   });
 
   return (
-    <RoomShell title="writing room">
-      <div className="mx-auto w-full max-w-3xl px-4 pb-12 sm:px-6">
-        {/* masthead */}
-        <div className="border-ink flex items-end justify-between gap-4 border-b-4 pb-3">
-          <div>
-            <h2 className="text-ink font-serif text-6xl font-black tracking-tight sm:text-7xl">
-              NOTES
-            </h2>
-            <p className="text-ink-soft mt-1 font-mono text-xs tracking-widest uppercase">
-              reads · builds · writes
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-col items-end gap-2 pb-1">
-            <Link
-              href="/notes/board"
-              className="border-line text-ink hover:bg-accent/10 rotate-2 rounded-sm border bg-surface px-3 py-2 text-xs font-medium shadow-[3px_4px_0_rgba(42,31,14,0.1)] transition-all hover:rotate-0"
-            >
-              📌 the hobby board
-            </Link>
-            <Link
-              href="/notes/write"
-              className="bg-accent text-accent-ink font-pixel rounded-full px-4 py-1.5 text-xs hover:opacity-90"
-            >
-              ✎ write something
-            </Link>
-          </div>
+    <RoomShell
+      title="writing room"
+      heading="The Writing Room"
+      tagline="reads · builds · writes"
+      image={{
+        src: "https://images.unsplash.com/photo-1517842645767-c639042777db?w=1200&h=400&fit=crop&auto=format",
+        alt: "An open notebook and pen on a desk",
+      }}
+    >
+      <div className="mx-auto w-full max-w-3xl px-4 pt-6 pb-12 sm:px-6">
+        {/* actions */}
+        <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
+          <Link
+            href="/notes/board"
+            className="border-line text-ink hover:bg-accent/10 rotate-2 rounded-sm border bg-surface px-3 py-2 text-xs font-medium shadow-[3px_4px_0_rgba(42,31,14,0.1)] transition-all hover:rotate-0"
+          >
+            📌 the hobby board
+          </Link>
+          <Link
+            href="/notes/write"
+            className="bg-accent text-accent-ink font-pixel rounded-full px-4 py-1.5 text-xs hover:opacity-90"
+          >
+            ✎ write something
+          </Link>
         </div>
 
         {/* ticker */}

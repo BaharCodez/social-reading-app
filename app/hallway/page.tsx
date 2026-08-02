@@ -25,6 +25,7 @@ export default async function GalleryPage() {
         detail: true,
         years: true,
         link: true,
+        tags: true,
       },
     }),
     isOwner(),

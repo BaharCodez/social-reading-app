@@ -11,18 +11,13 @@ export interface Frame {
   detail: string;
   years: string | null;
   link: string | null;
+  tags: string[];
 }
 
 const KIND_LABEL: Record<string, string> = {
   job: "job",
   project: "project",
   achievement: "achievement",
-};
-
-const FILTER_LABEL: Record<string, string> = {
-  job: "jobs",
-  project: "projects",
-  achievement: "achievements",
 };
 
 /* Owner-only edit / remove controls for a frame. */
@@ -123,6 +118,15 @@ function AccordionFrame({
               visit ↗
             </a>
           )}
+          {frame.tags.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {frame.tags.map((t) => (
+                <span key={t} className="text-accent-2 font-mono text-xs">
+                  #{t}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -184,6 +188,7 @@ const EMPTY_FORM = {
   detail: "",
   years: "",
   link: "",
+  tags: "", // comma-separated in the form; sent as an array
 };
 
 export default function HallwayWall({
@@ -202,14 +207,17 @@ export default function HallwayWall({
   const [filter, setFilter] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
 
-  const visible = filter ? frames.filter((f) => f.kind === filter) : frames;
+  const visible = filter
+    ? frames.filter((f) => f.tags?.includes(filter))
+    : frames;
   const jobs = visible.filter((f) => f.kind === "job");
-  const posters = visible.filter((f) => f.kind !== "job");
+  const projects = visible.filter((f) => f.kind === "project");
+  const achievements = visible.filter((f) => f.kind === "achievement");
 
-  // Only offer a pill for a kind that actually hangs on the wall.
-  const kinds = ["job", "project", "achievement"].filter((k) =>
-    frames.some((f) => f.kind === k),
-  );
+  // Filter the wall by the tags that actually appear on it.
+  const allTags = Array.from(
+    new Set(frames.flatMap((f) => f.tags ?? [])),
+  ).sort();
 
   function startEdit(frame: Frame) {
     setForm({
@@ -219,6 +227,7 @@ export default function HallwayWall({
       detail: frame.detail,
       years: frame.years ?? "",
       link: frame.link ?? "",
+      tags: frame.tags.join(", "),
     });
     setEditingId(frame.id);
     setAdding(true);
@@ -236,12 +245,19 @@ export default function HallwayWall({
     setBusy(true);
     setError(null);
     try {
+      const payload = {
+        ...form,
+        tags: form.tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+      };
       const res = await fetch(
         editingId ? `/api/frames/${editingId}` : "/api/frames",
         {
           method: editingId ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
+          body: JSON.stringify(payload),
         },
       );
       if (!res.ok) {
@@ -270,6 +286,24 @@ export default function HallwayWall({
         ? "bg-accent text-accent-ink"
         : "border-line text-ink-soft hover:text-ink border"
     }`;
+  const accordionList = (list: Frame[]) =>
+    list.length > 0 ? (
+      <div>
+        {list.map((f) => (
+          <AccordionFrame
+            key={f.id}
+            frame={f}
+            isOpen={openId === f.id}
+            onToggle={() => setOpenId(openId === f.id ? null : f.id)}
+            canEdit={canEdit}
+            onEdit={startEdit}
+            onRemove={removeFrame}
+          />
+        ))}
+      </div>
+    ) : (
+      <p className="text-ink-soft text-sm italic">nothing here yet</p>
+    );
 
   return (
     <div className="mx-auto w-full max-w-4xl px-6 pt-8 pb-16 sm:px-8">
@@ -278,8 +312,8 @@ export default function HallwayWall({
         worth framing. Open any one to read the story behind it.
       </p>
 
-      {/* filter pills */}
-      {kinds.length > 1 && (
+      {/* filter by tag */}
+      {allTags.length > 0 && (
         <div className="mb-10 flex flex-wrap gap-2">
           <button
             type="button"
@@ -288,14 +322,14 @@ export default function HallwayWall({
           >
             everything
           </button>
-          {kinds.map((k) => (
+          {allTags.map((t) => (
             <button
-              key={k}
+              key={t}
               type="button"
-              onClick={() => setFilter(filter === k ? null : k)}
-              className={pill(filter === k)}
+              onClick={() => setFilter(filter === t ? null : t)}
+              className={pill(filter === t)}
             >
-              {FILTER_LABEL[k]}
+              #{t}
             </button>
           ))}
         </div>
@@ -309,28 +343,17 @@ export default function HallwayWall({
         </div>
       ) : (
         <div className="grid gap-10 md:grid-cols-2 md:gap-12">
-          {/* made & done — accordion */}
+          {/* projects, then achievements below */}
           <div>
             <h2 className="text-accent-2 mb-5 font-mono text-xs tracking-[0.2em] uppercase">
               projects
             </h2>
-            {posters.length > 0 ? (
-              <div>
-                {posters.map((f) => (
-                  <AccordionFrame
-                    key={f.id}
-                    frame={f}
-                    isOpen={openId === f.id}
-                    onToggle={() => setOpenId(openId === f.id ? null : f.id)}
-                    canEdit={canEdit}
-                    onEdit={startEdit}
-                    onRemove={removeFrame}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-ink-soft text-sm italic">nothing here yet</p>
-            )}
+            {accordionList(projects)}
+
+            <h2 className="text-accent-2 mt-10 mb-5 font-mono text-xs tracking-[0.2em] uppercase">
+              achievements
+            </h2>
+            {accordionList(achievements)}
           </div>
 
           {/* places I've worked */}
@@ -425,6 +448,12 @@ export default function HallwayWall({
                   onChange={(e) => setForm({ ...form, link: e.target.value })}
                 />
               </div>
+              <input
+                className={field}
+                placeholder="Tags, comma-separated (e.g. react, python, iot)"
+                value={form.tags}
+                onChange={(e) => setForm({ ...form, tags: e.target.value })}
+              />
               {error && <p className="text-sm text-[#9B4E2E]">{error}</p>}
               <div className="flex gap-2">
                 <button

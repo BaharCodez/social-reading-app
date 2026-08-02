@@ -39,7 +39,12 @@ export default async function DailyPage() {
   return (
     <RoomShell
       title="the daily room"
-      tagline="one article, one sip of spanish — small, every day"
+      heading="The Daily Room"
+      tagline="one article, one sip of spanish, small every day"
+      image={{
+        src: "https://images.unsplash.com/photo-1677846092922-5b685ba0afb2?w=1200&h=400&fit=crop&auto=format",
+        alt: "A cup of coffee and a book on a windowsill",
+      }}
     >
       <DailyRoom
         article={article}

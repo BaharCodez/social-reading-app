@@ -45,6 +45,7 @@ export const frameInputSchema = z.object({
   detail: z.string().max(2000).trim().default(""),
   years: z.string().max(40).trim().nullish(),
   link: z.url("Links need to be full URLs.").nullish().or(z.literal("")),
+  tags: z.array(z.string().trim().min(1).max(30)).max(12).default([]),
   sort: z.number().int().default(0),
 });
 
