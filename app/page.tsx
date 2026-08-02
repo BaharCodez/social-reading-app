@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 const ROOMS = [
   { href: "/hallway", label: "My Portfolio", emoji: "💼", tagline: "projects, jobs & wins" },
   { href: "/notes", label: "Writing Room", emoji: "✒️", tagline: "notes & essays" },
+  { href: "/study", label: "The Study", emoji: "📚", tagline: "what I'm reading" },
   { href: "/daily", label: "Daily Room", emoji: "☕", tagline: "today, always today" },
   { href: "/workshop", label: "The Workshop", emoji: "🔧", tagline: "things I make" },
 ];

@@ -99,15 +99,10 @@ export default function Library({
 
       <div className="mx-auto w-full max-w-5xl flex-1 px-6 pb-16">
         <div className="mb-8 flex items-end justify-between">
-          <div>
-            <h1 className="text-ink font-serif text-4xl font-semibold tracking-tight">
-              my bookshelf
-            </h1>
-            <p className="text-ink-soft mt-1 text-sm">
-              {books.length} book{books.length === 1 ? "" : "s"} · shared with
-              everyone
-            </p>
-          </div>
+          <p className="text-ink-soft text-sm">
+            {books.length} book{books.length === 1 ? "" : "s"} · shared with
+            everyone
+          </p>
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
