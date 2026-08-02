@@ -4,7 +4,23 @@
    Each theme is a palette of CSS variables, selected by `data-theme` on
    <html>. Cottagecore bookshop vibes: buttermilk, moss, terracotta, wood. */
 
+/* The Cottage — parchment, moss, ink-brown, rust. The house's default look. */
 :root,
+[data-theme="cottage"] {
+  color-scheme: light;
+  --bg: #f4ecd8;
+  --bg-2: #e8dac0;
+  --surface: #faf5ec;
+  --ink: #2a1f0e;
+  --ink-soft: #6b5a3e;
+  --line: #d4c5a0;
+  --accent: #3d5a3e; /* moss */
+  --accent-ink: #f4ecd8;
+  --accent-2: #5c7d5d; /* moss-light, for mono labels */
+  --shelf: #c69e66;
+  --shelf-edge: #9a7342;
+}
+
 [data-theme="meadow"] {
   color-scheme: light;
   --bg: #f4ecd8;
@@ -124,9 +140,9 @@
   --color-accent-2: var(--accent-2);
   --color-shelf: var(--shelf);
   --color-shelf-edge: var(--shelf-edge);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-serif: var(--font-fraunces);
+  --font-sans: var(--font-instrument), var(--font-geist-sans);
+  --font-mono: var(--font-courier), var(--font-geist-mono);
+  --font-serif: var(--font-lora), var(--font-fraunces);
 }
 
 body {
@@ -134,7 +150,8 @@ body {
     radial-gradient(1200px 600px at 50% -10%, var(--bg-2), transparent 60%),
     var(--bg);
   color: var(--ink);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family:
+    var(--font-instrument), var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
 /* Smooth momentum scrolling for touch (phone/iPad). */
@@ -157,17 +174,73 @@ body {
 /* ---- The pixel house ------------------------------------------------------
    Shared styling for the room pages (den, study, workshop, notes, hallway). */
 
-/* Pixel lettering everywhere in the house, regardless of theme. */
+/* The Cottage look (default): the old pixel lettering becomes a warm
+   typewriter mono, and chunky pixel frames become soft parchment cards. The
+   Plant Shop theme keeps the original pixel styling, restored below. */
 .font-pixel {
+  font-family: var(--font-courier), var(--font-geist-mono), monospace;
+  letter-spacing: 0.04em;
+}
+
+.pixel-frame {
+  border: 1px solid var(--line);
+  box-shadow: 4px 6px 20px rgba(42, 31, 14, 0.08);
+}
+
+/* Plant Shop theme: restore the original pixel-art house styling. */
+[data-theme="plantshop"] .font-pixel {
   font-family: var(--font-pixel), monospace;
   letter-spacing: 0.02em;
 }
-
-/* Chunky flat frame that reads as pixel art: hard edges, drop "shadow" cast
-   as a solid offset block rather than a blur. */
-.pixel-frame {
+[data-theme="plantshop"] .pixel-frame {
   border: 3px solid var(--shelf-edge);
   box-shadow: 4px 4px 0 0 color-mix(in srgb, var(--shelf-edge) 45%, transparent);
+}
+
+/* Cottage botanical animations. */
+@keyframes cottage-sway {
+  0%,
+  100% {
+    transform: rotate(-1.5deg);
+  }
+  50% {
+    transform: rotate(1.5deg);
+  }
+}
+@keyframes cottage-drift {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-0.5deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(0.5deg);
+  }
+}
+@keyframes cottage-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.sway {
+  animation: cottage-sway 6s ease-in-out infinite;
+}
+.drift {
+  animation: cottage-drift 8s ease-in-out infinite;
+}
+.fade-up {
+  animation: cottage-fade-up 0.6s ease-out forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sway,
+  .drift,
+  .fade-up {
+    animation: none;
+  }
 }
 
 /* Scrolling marquee for the writing room's ticker. The track holds two
@@ -245,13 +318,13 @@ body {
 }
 .article h1,
 .article h2 {
-  font-family: var(--font-fraunces), serif;
+  font-family: var(--font-serif), serif;
   font-weight: 700;
   font-size: 1.5rem;
   margin: 1.75rem 0 0.5rem;
 }
 .article h3 {
-  font-family: var(--font-fraunces), serif;
+  font-family: var(--font-serif), serif;
   font-weight: 600;
   font-size: 1.2rem;
   margin: 1.5rem 0 0.4rem;

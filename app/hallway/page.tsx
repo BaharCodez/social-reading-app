@@ -1,49 +1,69 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { prisma } from "@/app/lib/prisma";
-import RoomShell from "@/app/components/RoomShell";
+import { isOwner } from "@/app/lib/session";
 import HallwayWall from "@/app/components/HallwayWall";
 
 export const metadata: Metadata = {
-  title: "the hallway — bahar's house",
-  description: "Jobs, projects, and achievements, framed on the wall.",
+  title: "my portfolio — bahar's house",
+  description: "Projects, jobs, and achievements.",
 };
 
-// The wall is wide open — anyone in the house can hang or take down frames.
-export default async function HallwayPage() {
+export default async function GalleryPage() {
   // Render per request — the wall changes, and CI builds have no database.
   await connection();
-  const frames = await prisma.frame.findMany({
-    // sandbox builds live on the workshop shelf, not the hallway wall
-    where: { kind: { not: "sandbox" } },
-    orderBy: [{ sort: "asc" }, { createdAt: "asc" }],
-    select: {
-      id: true,
-      kind: true,
-      title: true,
-      subtitle: true,
-      detail: true,
-      years: true,
-      link: true,
-    },
-  });
+  const [frames, canEdit] = await Promise.all([
+    prisma.frame.findMany({
+      // sandbox builds live on the workshop shelf, not the gallery wall
+      where: { kind: { not: "sandbox" } },
+      orderBy: [{ sort: "asc" }, { createdAt: "asc" }],
+      select: {
+        id: true,
+        kind: true,
+        title: true,
+        subtitle: true,
+        detail: true,
+        years: true,
+        link: true,
+        tags: true,
+      },
+    }),
+    isOwner(),
+  ]);
 
   return (
-    <RoomShell
-      title="the hallway"
-      tagline="jobs, projects & achievements, framed on the wall"
-    >
-      <HallwayWall frames={frames} canEdit />
-
-      {/* the nameplate by the door */}
-      <div className="flex justify-center pb-12">
-        <div className="pixel-frame bg-surface px-6 py-4 text-center">
-          <p className="font-pixel text-ink text-lg">bahar</p>
-          <p className="text-ink-soft mt-1 text-sm">
-            reads · writes · solders — sometimes all in one evening
-          </p>
+    <div className="fade-up flex flex-1 flex-col">
+      {/* Botanical image header, study-style. */}
+      <div
+        className="border-line relative h-44 overflow-hidden border-b sm:h-56"
+        style={{ backgroundColor: "var(--bg-2)" }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://images.unsplash.com/photo-1638294621924-be97f5f92413?w=1200&h=400&fit=crop&auto=format"
+          alt="Pressed leaves and flowers arranged on a surface"
+          loading="lazy"
+          className="h-full w-full object-cover"
+          style={{ filter: "sepia(28%) saturate(82%) brightness(0.96)" }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to bottom, transparent 35%, var(--bg) 100%)",
+          }}
+        />
+        <div className="absolute bottom-5 left-6 sm:left-8">
+          <span className="text-accent-2 font-mono text-xs tracking-[0.2em] uppercase">
+            my portfolio
+          </span>
+          <h1 className="text-ink mt-1 font-serif text-3xl sm:text-4xl">
+            My Portfolio
+          </h1>
         </div>
       </div>
-    </RoomShell>
+
+      <HallwayWall frames={frames} canEdit={canEdit} />
+    </div>
   );
 }

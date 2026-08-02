@@ -50,13 +50,19 @@ export default async function WorkshopPage() {
       detail: true,
       years: true,
       link: true,
+      tags: true,
     },
   });
 
   return (
     <RoomShell
       title="the workshop"
+      heading="The Workshop"
       tagline="mission control for the esp32 on the workbench"
+      image={{
+        src: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=1200&h=400&fit=crop&auto=format",
+        alt: "Code and circuitry on a workbench",
+      }}
     >
       <div className="mx-auto grid w-full max-w-3xl grid-cols-2 gap-4 px-4 pb-10 sm:grid-cols-3 sm:gap-5 sm:px-6">
         <Tile label="device">
