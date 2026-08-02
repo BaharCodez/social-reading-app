@@ -156,6 +156,23 @@ model Bookmark {
   createdAt DateTime @default(now())
 }
 
+// A single page view by a visitor (never the owner). Location is coarse
+// (from the host's geo headers); ipHash is salted, never a raw IP.
+model Visit {
+  id        String   @id @default(cuid())
+  path      String
+  country   String   @default("")
+  city      String   @default("")
+  region    String   @default("")
+  referrer  String   @default("")
+  device    String   @default("")
+  ipHash    String   @default("")
+  visitorName String @default("") // only set if the visitor was signed in
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 // A self-paced learning path (a book, a subject) broken into small steps.
 model Roadmap {
   id        String        @id @default(cuid())

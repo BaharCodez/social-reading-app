@@ -11,6 +11,8 @@ import {
 import "./globals.css";
 import Providers from "./components/Providers";
 import Sidebar from "./components/Sidebar";
+import VisitTracker from "./components/VisitTracker";
+import SecretDoor from "./components/SecretDoor";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -104,6 +106,8 @@ export default function RootLayout({
           <main className="flex min-h-screen flex-col pt-14 md:ml-56 md:pt-0">
             {children}
           </main>
+          <VisitTracker />
+          <SecretDoor />
         </Providers>
       </body>
     </html>
