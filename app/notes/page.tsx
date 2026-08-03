@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -9,6 +10,14 @@ export const metadata: Metadata = {
   title: "writing room — bahar's house",
   description: "Notes on what I'm reading and what I'm building.",
 };
+
+/* Evergreen topics — writing done purely to learn (study notes, exercises).
+   These sink below the dated essays regardless of when they were written. */
+const EVERGREEN_TAGS = new Set(["learning"]);
+
+function isEvergreen(tags: string[]): boolean {
+  return tags.some((t) => EVERGREEN_TAGS.has(t.toLowerCase()));
+}
 
 /* The first embedded image, used as the card's cover. */
 function firstImage(md: string): string | null {
@@ -29,11 +38,11 @@ function stamp(date: Date) {
 export default async function NotesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tag?: string }>;
+  searchParams: Promise<{ tag?: string; page?: string }>;
 }) {
   // Render per request — entries change, and CI builds have no database.
   await connection();
-  const { tag } = await searchParams;
+  const { tag, page } = await searchParams;
   const active = tag?.trim().toLowerCase() || null;
 
   const posts = await prisma.post.findMany({
@@ -62,9 +71,44 @@ export default async function NotesPage({
   );
   const activeLabel = active ? (counts.get(active)?.tag ?? active) : null;
 
-  const shown = active
+  const filtered = active
     ? posts.filter((p) => p.tags.some((t) => t.toLowerCase() === active))
     : posts;
+
+  // Evergreen "learning" notes sink to the bottom (stable sort keeps the
+  // date order within each group). Skipped when filtering to one topic.
+  const shown = [...filtered].sort(
+    (a, b) => Number(isEvergreen(a.tags)) - Number(isEvergreen(b.tags)),
+  );
+
+  // Paginate: 20 entries a page, newest first, evergreen pile last.
+  // 12 fills the 2- and 3-column grid evenly (no orphan row) and keeps each
+  // page a quick scroll. Bump it if the room gets busy.
+  const PAGE_SIZE = 12;
+  const totalPages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
+  const current = Math.min(Math.max(1, Math.trunc(Number(page)) || 1), totalPages);
+  const start = (current - 1) * PAGE_SIZE;
+  const pageItems = shown.slice(start, start + PAGE_SIZE);
+
+  // Global row where the evergreen pile starts, mapped onto this page so the
+  // "learning notes" label lands wherever that boundary actually falls.
+  const evergreenStart =
+    active || shown[0] === undefined || isEvergreen(shown[0].tags)
+      ? -1
+      : shown.findIndex((p) => isEvergreen(p.tags));
+  const dividerIndex =
+    evergreenStart >= start && evergreenStart < start + PAGE_SIZE
+      ? evergreenStart - start
+      : -1;
+
+  // Page links preserve the active topic; page 1 drops the ?page param.
+  const pageHref = (p: number) => {
+    const params = new URLSearchParams();
+    if (activeLabel) params.set("tag", activeLabel);
+    if (p > 1) params.set("page", String(p));
+    const qs = params.toString();
+    return qs ? `/notes?${qs}` : "/notes";
+  };
 
   return (
     <RoomShell
@@ -144,14 +188,28 @@ export default async function NotesPage({
 
         {/* entries grid */}
         <div className="grid grid-cols-2 gap-x-6 gap-y-9 lg:grid-cols-3 lg:gap-x-8">
-          {shown.map((post) => {
+          {pageItems.map((post, i) => {
             const cover = firstImage(post.content);
             const { minutes } = readingStats(post.content);
             const href = post.publishedAt
               ? `/notes/${post.id}`
               : `/notes/write?id=${post.id}`;
+            const divider =
+              i === dividerIndex ? (
+                <div
+                  key="evergreen-divider"
+                  className="col-span-full mt-2 flex items-center gap-3"
+                >
+                  <span className="text-ink-soft/60 font-mono text-[0.65rem] tracking-[0.2em] uppercase">
+                    learning notes
+                  </span>
+                  <span className="border-line flex-1 border-t" />
+                </div>
+              ) : null;
             return (
-              <article key={post.id} className="group flex flex-col">
+              <Fragment key={post.id}>
+                {divider}
+                <article className="group flex flex-col">
                 <Link href={href} className="block">
                   {cover ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
@@ -200,7 +258,8 @@ export default async function NotesPage({
                     ))}
                   </div>
                 )}
-              </article>
+                </article>
+              </Fragment>
             );
           })}
         </div>
@@ -211,6 +270,34 @@ export default async function NotesPage({
               ? "No entries under this topic yet."
               : "Nothing written yet — the first entry is waiting."}
           </p>
+        )}
+
+        {totalPages > 1 && (
+          <nav className="border-line mt-12 flex items-center justify-between border-t pt-5 font-mono text-xs">
+            {current > 1 ? (
+              <Link
+                href={pageHref(current - 1)}
+                className="text-ink hover:text-accent transition-colors"
+              >
+                ← newer
+              </Link>
+            ) : (
+              <span className="text-ink-soft/40">← newer</span>
+            )}
+            <span className="text-ink-soft/70 tracking-wider">
+              page {current} of {totalPages}
+            </span>
+            {current < totalPages ? (
+              <Link
+                href={pageHref(current + 1)}
+                className="text-ink hover:text-accent transition-colors"
+              >
+                older →
+              </Link>
+            ) : (
+              <span className="text-ink-soft/40">older →</span>
+            )}
+          </nav>
         )}
       </div>
     </RoomShell>
