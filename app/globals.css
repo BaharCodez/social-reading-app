@@ -147,8 +147,13 @@
 
 body {
   background:
-    radial-gradient(1200px 600px at 50% -10%, var(--bg-2), transparent 60%),
+    radial-gradient(
+      1600px 900px at 50% -30%,
+      color-mix(in srgb, var(--bg-2) 55%, var(--bg)),
+      transparent 85%
+    ),
     var(--bg);
+  background-attachment: fixed;
   color: var(--ink);
   font-family:
     var(--font-instrument), var(--font-geist-sans), Arial, Helvetica, sans-serif;
