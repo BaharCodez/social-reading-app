@@ -134,6 +134,9 @@ export default function Reader({ bookId, initialLoc, onClose }: ReaderProps) {
   const trackedDoneRef = useRef<Set<string>>(new Set());
   const trackPendingRef = useRef<Set<string>>(new Set());
   const trackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The previous reading position, so we tick a section only when you actually
+  // cross it — jumping to a later chapter must not claim the earlier ones.
+  const lastCfiRef = useRef<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const epubCfiRef = useRef<any>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -473,28 +476,37 @@ export default function Reader({ bookId, initialLoc, onClose }: ReaderProps) {
         // grows (never unticks on a scroll back), and writes are debounced and
         // batched. A no-op until resolveTrackedSteps has populated trackedRef,
         // and for visitors (the API hands them no steps).
-        const syncRoadmap = (cfi: string) => {
+        //
+        // `backfill` (used once, on resuming at a saved position) ticks every
+        // section up to here. Otherwise a section ticks only when you *cross*
+        // it — moving from before it to at/after it — so a link-jump to a later
+        // chapter never claims the chapters you skipped over.
+        const syncRoadmap = (cfi: string, backfill = false) => {
           const steps = trackedRef.current;
           const cmp = epubCfiRef.current;
           if (!steps.length || !cmp) return;
+          const cmpSafe = (a: string, b: string) => {
+            try {
+              return cmp.compare(a, b) as number;
+            } catch {
+              return NaN;
+            }
+          };
+          const last = lastCfiRef.current;
           const fresh: string[] = [];
           for (let i = 0; i < steps.length; i++) {
             if (trackedDoneRef.current.has(steps[i].id)) continue;
             // Counts as read once you reach the next section (or, for the last
             // one, the section itself).
             const threshold = steps[i + 1]?.cfi ?? steps[i].cfi;
-            let passed = false;
-            try {
-              passed = cmp.compare(cfi, threshold) >= 0;
-            } catch {
-              passed = false;
-            }
-            if (passed) {
-              trackedDoneRef.current.add(steps[i].id);
-              trackPendingRef.current.add(steps[i].id);
-              fresh.push(steps[i].id);
-            }
+            if (!(cmpSafe(cfi, threshold) >= 0)) continue;
+            const crossed = backfill || last === null || cmpSafe(last, threshold) < 0;
+            if (!crossed) continue;
+            trackedDoneRef.current.add(steps[i].id);
+            trackPendingRef.current.add(steps[i].id);
+            fresh.push(steps[i].id);
           }
+          lastCfiRef.current = cfi;
           if (!fresh.length) return;
           if (trackTimerRef.current) clearTimeout(trackTimerRef.current);
           trackTimerRef.current = setTimeout(() => {
@@ -575,7 +587,13 @@ export default function Reader({ bookId, initialLoc, onClose }: ReaderProps) {
             const loc = rendition.currentLocation() as
               | { start?: { cfi?: string } }
               | undefined;
-            if (loc?.start?.cfi) syncRoadmap(loc.start.cfi);
+            const cfi = loc?.start?.cfi;
+            if (cfi) {
+              // Resumed at a saved spot → everything up to here was read.
+              // Jumped in via a step link → start fresh; only tick as you go.
+              if (initialLocRef.current) lastCfiRef.current = cfi;
+              else syncRoadmap(cfi, true);
+            }
           } catch {
             /* tracking is best-effort — never break the reader over it */
           }
@@ -611,9 +629,9 @@ export default function Reader({ bookId, initialLoc, onClose }: ReaderProps) {
       if (saveTimer) clearTimeout(saveTimer);
       // Flush any sections ticked in the last moment before closing.
       if (trackTimerRef.current) clearTimeout(trackTimerRef.current);
-      if (trackPendingRef.current.size) {
-        markRoadmapStepsRead(bookId, [...trackPendingRef.current]);
-        trackPendingRef.current.clear();
+      if (trackPending.size) {
+        markRoadmapStepsRead(bookId, [...trackPending]);
+        trackPending.clear();
       }
       detachOrientation?.();
       localBook?.destroy();
