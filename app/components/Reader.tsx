@@ -546,8 +546,18 @@ export default function Reader({ bookId, initialLoc, onClose }: ReaderProps) {
         // Resume where this user left off (synced across their devices).
         const savedCfi = await fetchProgress(bookId).catch(() => null);
         if (destroyed) return;
-        // A roadmap step jump (initialLoc) wins over the saved position.
-        await rendition.display(initialLocRef.current ?? savedCfi ?? undefined);
+        // A roadmap step jump (initialLoc) wins over the saved position — but a
+        // bad/unresolvable section must never blank out the whole book, so fall
+        // back to the saved position (or the start) if the jump fails.
+        try {
+          await rendition.display(
+            initialLocRef.current ?? savedCfi ?? undefined,
+          );
+        } catch {
+          if (initialLocRef.current) {
+            await rendition.display(savedCfi ?? undefined).catch(() => {});
+          }
+        }
         if (destroyed) return;
 
         rendition.themes.fontSize(`${fontScaleRef.current}%`);
