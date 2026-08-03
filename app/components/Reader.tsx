@@ -16,6 +16,9 @@ import AmbientMusic from "./AmbientMusic";
 
 interface ReaderProps {
   bookId: string;
+  // An EPUB href (e.g. "ch01.html#sec_…") to open at, instead of the saved
+  // position — used by roadmap step links that jump to a specific section.
+  initialLoc?: string;
   onClose: () => void;
 }
 
@@ -65,7 +68,9 @@ function addHighlight(
   );
 }
 
-export default function Reader({ bookId, onClose }: ReaderProps) {
+export default function Reader({ bookId, initialLoc, onClose }: ReaderProps) {
+  // Captured once: a step link's target section only applies to this open.
+  const initialLocRef = useRef(initialLoc);
   const viewerRef = useRef<HTMLDivElement>(null);
   const renditionRef = useRef<Rendition | null>(null);
   const bookRef = useRef<Book | null>(null);
@@ -425,7 +430,8 @@ export default function Reader({ bookId, onClose }: ReaderProps) {
         // Resume where this user left off (synced across their devices).
         const savedCfi = await fetchProgress(bookId).catch(() => null);
         if (destroyed) return;
-        await rendition.display(savedCfi ?? undefined);
+        // A roadmap step jump (initialLoc) wins over the saved position.
+        await rendition.display(initialLocRef.current ?? savedCfi ?? undefined);
         if (destroyed) return;
 
         rendition.themes.fontSize(`${fontScaleRef.current}%`);

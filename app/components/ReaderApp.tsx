@@ -17,6 +17,10 @@ export default function ReaderApp({
 }) {
   const [books, setBooks] = useState<BookMeta[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  // A section to open at (EPUB href), from a `?loc=` deep link — e.g. a
+  // roadmap step that jumps straight to its chapter. One-shot: cleared once
+  // opened, and dropped whenever a different book is chosen from the shelf.
+  const [openLoc, setOpenLoc] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // True once the initial book-restore has run, so the URL-sync effect doesn't
@@ -38,10 +42,13 @@ export default function ReaderApp({
         if (active) setBooks([]);
       }
       // Reopen the book from a share link, or the last one you were reading.
-      const shared =
-        new URLSearchParams(window.location.search).get("book") ??
-        localStorage.getItem("lastBook");
-      if (shared && active) setOpenId(shared);
+      const params = new URLSearchParams(window.location.search);
+      const shared = params.get("book") ?? localStorage.getItem("lastBook");
+      if (shared && active) {
+        // Honor `?loc=` only when it comes with an explicit `?book=` link.
+        if (params.get("book")) setOpenLoc(params.get("loc"));
+        setOpenId(shared);
+      }
       restored.current = true;
     })();
     return () => {
@@ -61,6 +68,8 @@ export default function ReaderApp({
       url.searchParams.delete("book");
       localStorage.removeItem("lastBook");
     }
+    // `loc` is a one-shot jump — keep the shareable URL down to just `?book=`.
+    url.searchParams.delete("loc");
     window.history.replaceState(null, "", url);
   }, [openId]);
 
@@ -111,6 +120,7 @@ export default function ReaderApp({
           : file;
         const { id } = await uploadBook(payload, meta);
         await refresh();
+        setOpenLoc(null);
         setOpenId(id);
       } catch (e) {
         setError("Couldn't add this EPUB. Please try again.");
@@ -131,7 +141,16 @@ export default function ReaderApp({
   );
 
   if (openId) {
-    return <Reader bookId={openId} onClose={() => setOpenId(null)} />;
+    return (
+      <Reader
+        bookId={openId}
+        initialLoc={openLoc ?? undefined}
+        onClose={() => {
+          setOpenLoc(null);
+          setOpenId(null);
+        }}
+      />
+    );
   }
 
   if (books === null) {
@@ -160,7 +179,10 @@ export default function ReaderApp({
       error={error}
       userName={currentUser?.name ?? null}
       onFile={addBook}
-      onOpen={setOpenId}
+      onOpen={(id) => {
+        setOpenLoc(null);
+        setOpenId(id);
+      }}
       onDelete={removeBook}
     />
   );

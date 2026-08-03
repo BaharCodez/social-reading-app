@@ -172,16 +172,25 @@ export default function RoadmapView({
                   )}
 
                   <div className="mt-2 flex flex-wrap items-center gap-3">
-                    {step.link && (
-                      <a
-                        href={step.link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-accent font-mono text-xs hover:underline"
-                      >
-                        read it ↗
-                      </a>
-                    )}
+                    {step.link &&
+                      (step.link.startsWith("/") ? (
+                        // In-app link (e.g. a book section) — open in the study.
+                        <Link
+                          href={step.link}
+                          className="text-accent font-mono text-xs hover:underline"
+                        >
+                          read it →
+                        </Link>
+                      ) : (
+                        <a
+                          href={step.link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-accent font-mono text-xs hover:underline"
+                        >
+                          read it ↗
+                        </a>
+                      ))}
                     {isDsa && DSA_CONTENT[step.title] && (
                       <button
                         type="button"
