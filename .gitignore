@@ -59,3 +59,7 @@ dev.db*
 
 # Understand-Anything knowledge-graph data (generated, regenerable via /understand)
 .ua/
+
+# Claude Code — local/personal tooling (launch.json is shared, the rest local)
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
