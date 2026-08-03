@@ -49,6 +49,14 @@ export default async function PostPage({
       </header>
 
       <article className="mx-auto w-full max-w-2xl flex-1 px-4 pb-16 sm:px-6">
+        {post.coverImage && (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={post.coverImage}
+            alt=""
+            className="border-line mb-6 aspect-[3/2] w-full rounded-md border object-cover"
+          />
+        )}
         <p className="font-mono text-sm">
           <span className="text-accent-2 font-bold">
             {date.toLocaleDateString("en-GB", {

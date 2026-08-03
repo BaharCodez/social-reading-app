@@ -24,6 +24,7 @@ export default async function WritePage({
             title: true,
             content: true,
             tags: true,
+            coverImage: true,
             publishedAt: true,
           },
         })
@@ -51,6 +52,7 @@ export default async function WritePage({
                 title: post.title,
                 content: post.content,
                 tags: post.tags,
+                coverImage: post.coverImage,
                 published: !!post.publishedAt,
               }
             : undefined

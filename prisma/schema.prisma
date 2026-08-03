@@ -105,6 +105,7 @@ model Post {
   title       String
   content     String
   tags        String[]  @default([]) // freeform topics, reused across posts
+  coverImage  String? // purposeful cover (already cropped); else the body's first image
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

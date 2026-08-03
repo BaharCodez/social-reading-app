@@ -8,12 +8,14 @@ import Image from "@tiptap/extension-image";
 import { Placeholder } from "@tiptap/extensions";
 import { Markdown } from "@tiptap/markdown";
 import TagInput from "./TagInput";
+import CoverPicker from "./CoverPicker";
 
 interface PostDraft {
   id?: string;
   title: string;
   content: string;
   tags: string[];
+  coverImage: string | null;
   published: boolean;
 }
 
@@ -52,6 +54,9 @@ export default function PostEditor({
   const router = useRouter();
   const [title, setTitle] = useState(initial?.title ?? "");
   const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
+  const [coverImage, setCoverImage] = useState<string | null>(
+    initial?.coverImage ?? null,
+  );
   const [postId, setPostId] = useState(initial?.id);
   const [published, setPublished] = useState(initial?.published ?? false);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
@@ -67,6 +72,7 @@ export default function PostEditor({
   /* Latest-value refs so debounced saves never read stale state. */
   const titleRef = useRef(title);
   const tagsRef = useRef(tags);
+  const coverRef = useRef(coverImage);
   const idRef = useRef(postId);
   const publishedRef = useRef(published);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -74,9 +80,10 @@ export default function PostEditor({
   useEffect(() => {
     titleRef.current = title;
     tagsRef.current = tags;
+    coverRef.current = coverImage;
     idRef.current = postId;
     publishedRef.current = published;
-  }, [title, tags, postId, published]);
+  }, [title, tags, coverImage, postId, published]);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -172,6 +179,7 @@ export default function PostEditor({
             title: t,
             content: ed.getMarkdown(),
             tags: tagsRef.current,
+            coverImage: coverRef.current,
             published: publish ?? publishedRef.current,
           }),
         },
@@ -335,6 +343,15 @@ export default function PostEditor({
           }}
         />
       </div>
+
+      {/* cover image */}
+      <CoverPicker
+        value={coverImage}
+        onChange={(url) => {
+          setCoverImage(url);
+          schedule();
+        }}
+      />
 
       {/* toolbar */}
       <div className="border-line mt-4 flex flex-wrap items-center gap-2 border-y-2 py-2">

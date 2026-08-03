@@ -38,6 +38,12 @@ export const postInputSchema = z.object({
   title: z.string().min(1, "Give it a title.").max(200).trim(),
   content: z.string().max(100_000).default(""),
   tags: tagsSchema,
+  // A cover image URL (our own /api/images path); empty means "none".
+  coverImage: z
+    .string()
+    .max(500)
+    .nullish()
+    .transform((v) => v?.trim() || null),
   published: z.boolean().default(true),
 });
 

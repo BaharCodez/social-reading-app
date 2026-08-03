@@ -52,6 +52,7 @@ export default async function NotesPage({
       title: true,
       content: true,
       tags: true,
+      coverImage: true,
       publishedAt: true,
     },
   });
@@ -189,7 +190,7 @@ export default async function NotesPage({
         {/* entries grid */}
         <div className="grid grid-cols-2 gap-x-6 gap-y-9 lg:grid-cols-3 lg:gap-x-8">
           {pageItems.map((post, i) => {
-            const cover = firstImage(post.content);
+            const cover = post.coverImage ?? firstImage(post.content);
             const { minutes } = readingStats(post.content);
             const href = post.publishedAt
               ? `/notes/${post.id}`

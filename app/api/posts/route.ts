@@ -11,6 +11,7 @@ export async function GET() {
       id: true,
       title: true,
       tags: true,
+      coverImage: true,
       publishedAt: true,
       updatedAt: true,
     },
