@@ -8,6 +8,8 @@ import {
   deleteAnnotation,
   fetchAnnotations,
   fetchProgress,
+  fetchRoadmapStepsForBook,
+  markRoadmapStepsRead,
   saveProgress,
 } from "@/app/lib/api";
 import type { Annotation } from "@/app/lib/types";
@@ -52,6 +54,61 @@ function flattenToc(
   return out;
 }
 
+// A roadmap step linked to a section of this book, resolved to the CFI where
+// that section begins — so reading past it can tick the step off.
+type TrackedStep = { id: string; cfi: string };
+
+// Resolve each linked step's EPUB href (e.g. "ch03.html#sec_storage") to a
+// CFI. Loads each chapter file once, finds the anchored element, and asks
+// epub.js for its CFI. Best-effort: anything that won't resolve is skipped.
+// Returns the steps sorted by reading order.
+async function resolveTrackedSteps(
+  book: Book,
+  EpubCFICtor: new () => { compare: (a: string, b: string) => number },
+  steps: { id: string; loc: string }[],
+): Promise<TrackedStep[]> {
+  const byHref = new Map<string, { id: string; anchor: string | null }[]>();
+  for (const s of steps) {
+    const [href, anchor] = s.loc.split("#");
+    if (!byHref.has(href)) byHref.set(href, []);
+    byHref.get(href)!.push({ id: s.id, anchor: anchor ?? null });
+  }
+
+  const resolved: TrackedStep[] = [];
+  for (const [href, items] of byHref) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const section: any = book.spine.get(href);
+      if (!section) continue;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await section.load((book as any).load.bind(book));
+      const doc: Document = section.document;
+      for (const it of items) {
+        try {
+          const el = it.anchor ? doc.getElementById(it.anchor) : doc.body;
+          const cfi = el ? section.cfiFromElement(el) : null;
+          if (cfi) resolved.push({ id: it.id, cfi });
+        } catch {
+          /* one bad anchor shouldn't sink the rest */
+        }
+      }
+      section.unload();
+    } catch {
+      /* skip a chapter we can't load */
+    }
+  }
+
+  const cmp = new EpubCFICtor();
+  resolved.sort((a, b) => {
+    try {
+      return cmp.compare(a.cfi, b.cfi);
+    } catch {
+      return 0;
+    }
+  });
+  return resolved;
+}
+
 function addHighlight(
   rendition: Rendition,
   cfiRange: string,
@@ -71,6 +128,14 @@ function addHighlight(
 export default function Reader({ bookId, initialLoc, onClose }: ReaderProps) {
   // Captured once: a step link's target section only applies to this open.
   const initialLocRef = useRef(initialLoc);
+  // Roadmap auto-tracking: linked sections (sorted by reading order), the ids
+  // already ticked (so we never re-send), and a debounce for the write-back.
+  const trackedRef = useRef<TrackedStep[]>([]);
+  const trackedDoneRef = useRef<Set<string>>(new Set());
+  const trackPendingRef = useRef<Set<string>>(new Set());
+  const trackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const epubCfiRef = useRef<any>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
   const renditionRef = useRef<Rendition | null>(null);
   const bookRef = useRef<Book | null>(null);
@@ -182,6 +247,8 @@ export default function Reader({ bookId, initialLoc, onClose }: ReaderProps) {
     let saveTimer: ReturnType<typeof setTimeout> | null = null;
     let detachOrientation: (() => void) | null = null;
     const drawn = drawnRef.current;
+    // Stable across this open — captured for the cleanup flush below.
+    const trackPending = trackPendingRef.current;
     setCandidate(null); // a selection can't survive a rendition rebuild
 
     (async () => {
@@ -191,7 +258,8 @@ export default function Reader({ bookId, initialLoc, onClose }: ReaderProps) {
         const data = await res.arrayBuffer();
         if (destroyed) return;
 
-        const ePub = (await import("epubjs")).default;
+        const epubMod = await import("epubjs");
+        const ePub = epubMod.default;
         if (destroyed) return;
 
         const book = ePub(data);
@@ -401,6 +469,41 @@ export default function Reader({ bookId, initialLoc, onClose }: ReaderProps) {
           },
         );
 
+        // Reading past a linked section ticks its roadmap step. Progress only
+        // grows (never unticks on a scroll back), and writes are debounced and
+        // batched. A no-op until resolveTrackedSteps has populated trackedRef,
+        // and for visitors (the API hands them no steps).
+        const syncRoadmap = (cfi: string) => {
+          const steps = trackedRef.current;
+          const cmp = epubCfiRef.current;
+          if (!steps.length || !cmp) return;
+          const fresh: string[] = [];
+          for (let i = 0; i < steps.length; i++) {
+            if (trackedDoneRef.current.has(steps[i].id)) continue;
+            // Counts as read once you reach the next section (or, for the last
+            // one, the section itself).
+            const threshold = steps[i + 1]?.cfi ?? steps[i].cfi;
+            let passed = false;
+            try {
+              passed = cmp.compare(cfi, threshold) >= 0;
+            } catch {
+              passed = false;
+            }
+            if (passed) {
+              trackedDoneRef.current.add(steps[i].id);
+              trackPendingRef.current.add(steps[i].id);
+              fresh.push(steps[i].id);
+            }
+          }
+          if (!fresh.length) return;
+          if (trackTimerRef.current) clearTimeout(trackTimerRef.current);
+          trackTimerRef.current = setTimeout(() => {
+            const ids = [...trackPendingRef.current];
+            trackPendingRef.current.clear();
+            markRoadmapStepsRead(bookId, ids);
+          }, 1500);
+        };
+
         // Remember the reading position per user (synced via the server) and
         // show "page X of Y" as the reader moves. Debounce the save so page
         // turns don't hammer the API.
@@ -408,6 +511,7 @@ export default function Reader({ bookId, initialLoc, onClose }: ReaderProps) {
           const cfi = location.start.cfi;
           if (saveTimer) clearTimeout(saveTimer);
           saveTimer = setTimeout(() => saveProgress(bookId, cfi), 1200);
+          syncRoadmap(cfi);
 
           const total = book.locations.length();
           if (!total) return;
@@ -449,6 +553,34 @@ export default function Reader({ bookId, initialLoc, onClose }: ReaderProps) {
           .catch(() => {});
 
         setReady(true);
+
+        // Owner-only: link this book's reading to its roadmap. Resolve each
+        // linked section to a CFI in the background, then reconcile against
+        // wherever we opened (so already-read sections tick immediately).
+        (async () => {
+          try {
+            const steps = await fetchRoadmapStepsForBook(bookId);
+            if (destroyed || !steps.length) return;
+            epubCfiRef.current = new epubMod.EpubCFI();
+            const tracked = await resolveTrackedSteps(
+              book,
+              epubMod.EpubCFI,
+              steps,
+            );
+            if (destroyed) return;
+            trackedRef.current = tracked;
+            trackedDoneRef.current = new Set(
+              steps.filter((s) => s.done).map((s) => s.id),
+            );
+            const loc = rendition.currentLocation() as
+              | { start?: { cfi?: string } }
+              | undefined;
+            if (loc?.start?.cfi) syncRoadmap(loc.start.cfi);
+          } catch {
+            /* tracking is best-effort — never break the reader over it */
+          }
+        })();
+
         book.locations
           .generate(1000)
           .then(() => {
@@ -477,6 +609,12 @@ export default function Reader({ bookId, initialLoc, onClose }: ReaderProps) {
     return () => {
       destroyed = true;
       if (saveTimer) clearTimeout(saveTimer);
+      // Flush any sections ticked in the last moment before closing.
+      if (trackTimerRef.current) clearTimeout(trackTimerRef.current);
+      if (trackPendingRef.current.size) {
+        markRoadmapStepsRead(bookId, [...trackPendingRef.current]);
+        trackPendingRef.current.clear();
+      }
       detachOrientation?.();
       localBook?.destroy();
       renditionRef.current = null;

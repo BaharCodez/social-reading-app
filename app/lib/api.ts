@@ -82,3 +82,34 @@ export async function saveProgress(bookId: string, cfi: string): Promise<void> {
     body: JSON.stringify({ cfi }),
   }).catch(() => {});
 }
+
+// --- Roadmap reading sync ------------------------------------------------
+// Owner-only: reading a book auto-ticks the roadmap steps that link into it.
+
+export type RoadmapReadingStep = { id: string; loc: string; done: boolean };
+
+// Steps whose link points into this book. Empty for visitors (the API gates
+// on the owner), so the reader silently skips tracking for everyone else.
+export async function fetchRoadmapStepsForBook(
+  bookId: string,
+): Promise<RoadmapReadingStep[]> {
+  try {
+    const res = await fetch(`/api/roadmap-steps/for-book/${bookId}`);
+    if (!res.ok) return [];
+    return (await res.json()) as RoadmapReadingStep[];
+  } catch {
+    return [];
+  }
+}
+
+export async function markRoadmapStepsRead(
+  bookId: string,
+  ids: string[],
+): Promise<void> {
+  if (!ids.length) return;
+  await fetch(`/api/roadmap-steps/for-book/${bookId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ doneIds: ids }),
+  }).catch(() => {});
+}
