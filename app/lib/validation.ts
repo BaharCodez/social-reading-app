@@ -15,10 +15,29 @@ export const annotationInputSchema = z.object({
   comment: z.string().max(5000).default(""),
 });
 
+// Freeform topic labels: trimmed, de-duplicated (case-insensitive), capped.
+export const tagsSchema = z
+  .array(z.string())
+  .default([])
+  .transform((tags) => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const raw of tags) {
+      const tag = raw.trim().replace(/\s+/g, " ").slice(0, 40);
+      const key = tag.toLowerCase();
+      if (tag && !seen.has(key)) {
+        seen.add(key);
+        out.push(tag);
+      }
+    }
+    return out.slice(0, 12);
+  });
+
 // A writing-room blog post (markdown body).
 export const postInputSchema = z.object({
   title: z.string().min(1, "Give it a title.").max(200).trim(),
   content: z.string().max(100_000).default(""),
+  tags: tagsSchema,
   published: z.boolean().default(true),
 });
 

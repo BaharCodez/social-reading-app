@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/app/lib/prisma";
 import PostEditor from "@/app/components/PostEditor";
+import { postTagCounts } from "@/app/lib/tags";
 
 export const metadata: Metadata = {
   title: "writing desk — bahar's house",
@@ -14,12 +15,21 @@ export default async function WritePage({
   searchParams: Promise<{ id?: string }>;
 }) {
   const { id } = await searchParams;
-  const post = id
-    ? await prisma.post.findUnique({
-        where: { id },
-        select: { id: true, title: true, content: true, publishedAt: true },
-      })
-    : null;
+  const [post, tagCounts] = await Promise.all([
+    id
+      ? prisma.post.findUnique({
+          where: { id },
+          select: {
+            id: true,
+            title: true,
+            content: true,
+            tags: true,
+            publishedAt: true,
+          },
+        })
+      : null,
+    postTagCounts(),
+  ]);
   if (id && !post) notFound();
 
   return (
@@ -33,12 +43,14 @@ export default async function WritePage({
         </Link>
       </header>
       <PostEditor
+        allTags={tagCounts.map((t) => t.tag)}
         initial={
           post
             ? {
                 id: post.id,
                 title: post.title,
                 content: post.content,
+                tags: post.tags,
                 published: !!post.publishedAt,
               }
             : undefined

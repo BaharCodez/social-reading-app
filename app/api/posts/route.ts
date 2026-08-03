@@ -7,7 +7,13 @@ import { postInputSchema } from "@/app/lib/validation";
 export async function GET() {
   const posts = await prisma.post.findMany({
     orderBy: [{ publishedAt: { sort: "desc", nulls: "first" } }],
-    select: { id: true, title: true, publishedAt: true, updatedAt: true },
+    select: {
+      id: true,
+      title: true,
+      tags: true,
+      publishedAt: true,
+      updatedAt: true,
+    },
   });
   return NextResponse.json(posts);
 }

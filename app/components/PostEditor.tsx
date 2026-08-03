@@ -7,11 +7,13 @@ import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import { Placeholder } from "@tiptap/extensions";
 import { Markdown } from "@tiptap/markdown";
+import TagInput from "./TagInput";
 
 interface PostDraft {
   id?: string;
   title: string;
   content: string;
+  tags: string[];
   published: boolean;
 }
 
@@ -42,11 +44,14 @@ const MarkdownImage = Image.extend({
    storage format underneath). Saves itself as you write. */
 export default function PostEditor({
   initial,
+  allTags = [],
 }: {
   initial?: PostDraft & { id: string };
+  allTags?: string[];
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(initial?.title ?? "");
+  const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
   const [postId, setPostId] = useState(initial?.id);
   const [published, setPublished] = useState(initial?.published ?? false);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
@@ -61,15 +66,17 @@ export default function PostEditor({
 
   /* Latest-value refs so debounced saves never read stale state. */
   const titleRef = useRef(title);
+  const tagsRef = useRef(tags);
   const idRef = useRef(postId);
   const publishedRef = useRef(published);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queueRef = useRef<Promise<unknown>>(Promise.resolve());
   useEffect(() => {
     titleRef.current = title;
+    tagsRef.current = tags;
     idRef.current = postId;
     publishedRef.current = published;
-  }, [title, postId, published]);
+  }, [title, tags, postId, published]);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -164,6 +171,7 @@ export default function PostEditor({
           body: JSON.stringify({
             title: t,
             content: ed.getMarkdown(),
+            tags: tagsRef.current,
             published: publish ?? publishedRef.current,
           }),
         },
@@ -315,6 +323,18 @@ export default function PostEditor({
         autoFocus={!initial}
         className="text-ink placeholder:text-ink-soft/50 w-full bg-transparent font-serif text-4xl font-bold tracking-tight outline-none"
       />
+
+      {/* topics */}
+      <div className="mt-3">
+        <TagInput
+          value={tags}
+          suggestions={allTags}
+          onChange={(next) => {
+            setTags(next);
+            schedule();
+          }}
+        />
+      </div>
 
       {/* toolbar */}
       <div className="border-line mt-4 flex flex-wrap items-center gap-2 border-y-2 py-2">

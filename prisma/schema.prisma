@@ -104,6 +104,7 @@ model Post {
   id          String    @id @default(cuid())
   title       String
   content     String
+  tags        String[]  @default([]) // freeform topics, reused across posts
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
